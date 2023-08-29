@@ -2,7 +2,9 @@ const ipfsClient = require('ipfs-http-client');
 const uint8ArrayConcat = require("uint8arrays/concat");
 const fs = require('fs');
 const path = require('path');
-const CID = 'bafykbzaceatihez66rzmzuvfx5nqqik73hlphem3dvagmixmay3arvqd66ng6'; // Replace with your constant path/CID
+const exampleIPFSCID = 'bafykbzaceatihez66rzmzuvfx5nqqik73hlphem3dvagmixmay3arvqd66ng6'; // Replace with your constant path/CID
+
+const [fileLink] = process.argv;
 
 async function downloadIpfsFile(ipfs, cid) {
     let data = [];
@@ -18,7 +20,11 @@ async function downloadIpfsFile(ipfs, cid) {
     return uint8ArrayConcat(data);
 }
 
-async function download(cid) {
+async function download() {
+    // if (!fileLink || fileLink == "") {
+    //     console.log("Invalid link")
+    // }
+    const cid = exampleIPFSCID
     console.log("Downloading file:", cid);
     const ipfs = ipfsClient("http://gateway.ipfs.io")
     console.log("created ipfs");
@@ -37,5 +43,9 @@ async function download(cid) {
     }
 }
 
-// Automatically try to download the file when the script loads
-download(CID);
+download()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error)
+        process.exit(1)
+    })

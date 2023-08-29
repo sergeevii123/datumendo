@@ -4,14 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "ipfs": "node index.js",
+    "arweave": "node arweaveDownloader.js"
   },
   "keywords": [],
-  "author": "Ilia Sergeev",
+  "author": "Ilia Sergeev, Alex Telegin",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
-    "filecoin.js": "^0.0.5-alpha",
-    "ipfs": "0.51.0"
+    "ipfs": "0.51.0",
+    "node-fetch": "^3.3.2"
   }
 }
