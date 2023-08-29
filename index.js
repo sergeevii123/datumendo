@@ -2,9 +2,10 @@ const ipfsClient = require('ipfs-http-client');
 const uint8ArrayConcat = require("uint8arrays/concat");
 const fs = require('fs');
 const path = require('path');
-const exampleIPFSCID = 'bafykbzaceatihez66rzmzuvfx5nqqik73hlphem3dvagmixmay3arvqd66ng6'; // Replace with your constant path/CID
-
-const [fileLink] = process.argv;
+// const exampleIPFSCID = 'bafybeiagtega7rplvxmisdplxpc47oaqnkf4vwuxnk3tb6ufe2yahnvn2i/2697.png'; // Replace with your constant path/CID
+const ipfs = ipfsClient("http://gateway.ipfs.io")
+console.log("created ipfs");
+const [,,fileLink] = process.argv;
 
 async function downloadIpfsFile(ipfs, cid) {
     let data = [];
@@ -21,18 +22,19 @@ async function downloadIpfsFile(ipfs, cid) {
 }
 
 async function download() {
-    // if (!fileLink || fileLink == "") {
-    //     console.log("Invalid link")
-    // }
-    const cid = exampleIPFSCID
+    // const cid = exampleIPFSCID
+    if (fileLink.includes("ipfs://")) {
+        cid = fileLink.replaceAll("ipfs://", "")
+    } else {
+        cid = fileLink
+    }
+
     console.log("Downloading file:", cid);
-    const ipfs = ipfsClient("http://gateway.ipfs.io")
-    console.log("created ipfs");
     try {
         const data = await downloadIpfsFile(ipfs, cid);
-        
+        const fileName = cid.split('/').slice(-1)[0]; // Get the file name from the CID
         // Define the path where the file will be saved
-        const filePath = path.join(__dirname, 'downloaded_file'); // This will save in the current directory
+        const filePath = path.join(__dirname, fileName); // This will save in the current directory
         console.log("File path:", filePath);
         
         // Write data to a file
