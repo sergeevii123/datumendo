@@ -5,6 +5,8 @@ import { ChangeEvent, useState } from 'react';
 import { useAccount } from 'wagmi';
 import ipfsClient from 'ipfs-http-client';
 import uint8ArrayConcat from "uint8arrays/concat";
+import mime from 'mime';
+
 async function downloadIpfsFile(ipfs: any, cid: any) {
   let data = [];
 
@@ -118,7 +120,7 @@ export const CreateObject = () => {
                 objectName: createObjectInfo.objectName,
                 creator: address,
                 visibility: 'VISIBILITY_TYPE_PRIVATE',
-                fileType: file.type,
+                fileType: mime.getType(file),
                 redundancyType: 'REDUNDANCY_EC_TYPE',
                 contentLength,
                 expectCheckSums: JSON.parse(expectCheckSums),
