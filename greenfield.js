@@ -5,11 +5,11 @@ const gf = require('@bnb-chain/greenfiled-file-handle');
 const mime = require('mime');
 const client = Client.create('https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org', '5600');
 
-ADDRESS = ""
-PRIVATE_KEY = ""
+const ADDRESS = "";
+const PRIVATE_KEY = "";
 
 (async () => {
-    const account = await client.account.getAccount('');
+    const account = await client.account.getAccount(ADDRESS);
     const fileBytes = fs.readFileSync("2696.png");
     const hashResult = await gf.getCheckSums(
         new Uint8Array(fileBytes)
