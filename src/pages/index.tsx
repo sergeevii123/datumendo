@@ -1,34 +1,32 @@
+import { Bucket } from '@/components/bucket';
+import { ObjectComponent } from '@/components/object';
+import { WalletInfo } from '@/components/walletInfo';
 import { useIsMounted } from '@/hooks/useIsMounted';
-import Link from 'next/link';
+import { useAccount } from 'wagmi';
+import { DownloaderComponent } from '@/components/downloader';
 
 export default function Home() {
   const isMounted = useIsMounted();
+  const { isConnected } = useAccount();
 
   if (!isMounted) return null;
 
   return (
-    <>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-        }}
-      >
-        <li>
-          <Link href="/tx" color="#900" style={{ fontSize: 30 }}>
-            Tx
-          </Link>
-        </li>
+    <div style={{ padding: 10 }}>
+      <WalletInfo />
+      
+      <hr style={{ margin: '10px 0' }} />
 
-        <li>
-          <Link href="/query" color="#900" style={{ fontSize: 30 }}>
-            Query
-          </Link>
-        </li>
-      </div>
-    </>
+      {isConnected && (
+        <>
+          <Bucket />
+          <hr style={{ margin: '10px 0' }} />
+          {/* <DownloaderComponent /> */}
+          {/* <hr style={{ margin: '10px 0' }} /> */}
+          <ObjectComponent />
+          <hr style={{ margin: '10px 0' }} />
+        </>
+      )}
+    </div>
   );
 }

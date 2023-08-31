@@ -3,7 +3,21 @@ import { ACCOUNT_PRIVATEKEY } from '@/config/env';
 import { getOffchainAuthKeys } from '@/utils/offchainAuth';
 import { ChangeEvent, useState } from 'react';
 import { useAccount } from 'wagmi';
+import ipfsClient from 'ipfs-http-client';
+import uint8ArrayConcat from "uint8arrays/concat";
+async function downloadIpfsFile(ipfs: any, cid: any) {
+  let data = [];
 
+  for await (const file of ipfs.get(cid)) {
+      if (file.type == "file" && file.content) {
+          for await (const chunk of file.content) {
+              data.push(chunk);
+          }
+      }
+  }
+
+  return uint8ArrayConcat(data);
+}
 export const CreateObject = () => {
   const { address, connector } = useAccount();
   const [file, setFile] = useState<File>();
@@ -11,6 +25,10 @@ export const CreateObject = () => {
   const [createObjectInfo, setCreateObjectInfo] = useState({
     bucketName: '',
     objectName: '',
+  });
+  const ipfs = ipfsClient("http://gateway.ipfs.io")
+  const [linkInfo, setLinkInfo] = useState({
+    link: '',
   });
 
   return (
@@ -35,7 +53,7 @@ export const CreateObject = () => {
           }}
         />
         <br />
-        <input
+        {/* <input
           type="file"
           placeholder="select a file"
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -43,7 +61,33 @@ export const CreateObject = () => {
               setFile(e.target.files[0]);
             }
           }}
+        /> */}
+        <input
+          value={linkInfo.link}
+          placeholder="link"
+          style={{ width: '600px' }} 
+          onChange={(e) => {
+            setLinkInfo({ ...linkInfo, link: e.target.value });
+          }}
         />
+        <br />
+        <button
+          onClick={async () => {
+            if (!linkInfo ) {
+              alert('Please set link');
+              return;
+            }
+            const cid = linkInfo.link.replaceAll("ipfs://", "");
+            
+            console.log("Downloading file:", cid);
+            
+            const data = await downloadIpfsFile(ipfs, cid);
+            setFile(data);
+            alert('download object success');
+          }}
+      >
+        Download
+        </button>
         <br />
         <button
           onClick={async () => {
@@ -59,9 +103,9 @@ export const CreateObject = () => {
               return;
             }
 
-            const fileBytes = await file.arrayBuffer();
+            // const fileBytes = await file.arrayBuffer();
             const hashResult = await (window as any).FileHandle.getCheckSums(
-              new Uint8Array(fileBytes),
+              new Uint8Array(file),
             );
             const { contentLength, expectCheckSums } = hashResult;
 
