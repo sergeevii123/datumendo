@@ -12,8 +12,12 @@
   "author": "Ilia Sergeev, Alex Telegin",
   "license": "ISC",
   "dependencies": {
+    "@bnb-chain/greenfield-chain-sdk": "../greenfield-js-sdk/packages/chain-sdk",
+    "@bnb-chain/greenfield-js-sdk": "../greenfield-js-sdk",
+    "@bnb-chain/greenfiled-file-handle": "../greenfield-js-sdk/packages/file-handle",
     "express": "^4.18.2",
     "ipfs": "0.51.0",
+    "mime": "^3.0.0",
     "node-fetch": "^3.3.2"
   }
 }
