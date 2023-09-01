@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi';
 import ipfsClient from 'ipfs-http-client';
 import uint8ArrayConcat from "uint8arrays/concat";
 import mime from 'mime';
+import LoadingBar from './loading_bar';
 
 async function downloadIpfsFile(ipfs: any, cid: any) {
   let data = [];
@@ -45,8 +46,7 @@ async function downloadFile(finalURL: any) {
 
 export const CreateObject = () => {
   const { address, connector } = useAccount();
-  const [file, setFile] = useState<File>();
-  const [txHash, setTxHash] = useState<string>();
+  const [status, setStatus] = useState<string>('');
   const [createObjectInfo, setCreateObjectInfo] = useState({
     bucketName: '',
     objectName: '',
@@ -55,11 +55,11 @@ export const CreateObject = () => {
   const [linkInfo, setLinkInfo] = useState({
     link: '',
   });
+  const [progress, setProgress] = useState(0);
 
   return (
     <div>
       <>
-        <h4>Create Object</h4>
         bucket name :
         <input
           value={createObjectInfo.bucketName}
@@ -73,6 +73,7 @@ export const CreateObject = () => {
         <input
           value={createObjectInfo.objectName}
           placeholder="object name"
+          style={{ marginBottom: 20 }}
           onChange={(e) => {
             setCreateObjectInfo({ ...createObjectInfo, objectName: e.target.value });
           }}
@@ -87,77 +88,72 @@ export const CreateObject = () => {
             }
           }}
         /> */}
+        <h4>Input IPFS/Arweave link</h4>
         <input
           value={linkInfo.link}
           placeholder="link"
-          style={{ width: '600px' }} 
+          style={{ width: '600px', marginBottom: 5 }} 
           onChange={(e) => {
             setLinkInfo({ ...linkInfo, link: e.target.value });
           }}
         />
         <br />
-        <button
+        <button style={{ marginBottom: 10 }}
           onClick={async () => {
+            setStatus('Initializing...');
             if (!linkInfo ) {
-              alert('Please set link');
+              setStatus('Please set link');
+              return;
+            }
+            if (!address) {
+              setStatus('Please select an address');
               return;
             }
             if (!linkInfo.link.startsWith("ipfs://") && !linkInfo.link.startsWith("ar://")) {
-              alert('Please insert link with ipfs:// or ar://');
+              setStatus('Please insert link with ipfs:// or ar://');
               return;
             }
+            let data;
+            setStatus('Downloading data...');
+            setProgress(10);
             if (linkInfo.link.startsWith("ipfs://")) {
               const cid = linkInfo.link.replaceAll("ipfs://", "");
-              
               console.log("Downloading file:", cid);
-              
-              const data = await downloadIpfsFile(ipfs, cid);
-              setFile(data);
-              alert('download object success');
+              data = await downloadIpfsFile(ipfs, cid);
             } else {
               const finalUrl = linkInfo.link.replaceAll("ar://", "https://arweave.net/");
               console.log("Downloading file: " + finalUrl);
-              
-
-              const data = await downloadFile(finalUrl);
-              setFile(data);
-              alert('download object success');
+              data = await downloadFile(finalUrl);
             }
-          }}
-      >
-        Download
-        </button>
-        <br />
-        <button
-          onClick={async () => {
-            if (!address || !file) {
-              alert('Please select a file or address');
+            if (!data) {
+              setStatus('Failed to download data');
               return;
             }
-
+            setProgress(30);
+            setStatus('Data downloaded. Calculating object hash...');
             const provider = await connector?.getProvider();
             const offChainData = await getOffchainAuthKeys(address, provider);
             if (!offChainData) {
-              alert('No offchain, please create offchain pairs first');
+              setStatus('No offchain, please create offchain pairs first');
               return;
             }
-
-            // const fileBytes = await file.arrayBuffer();
             const hashResult = await (window as any).FileHandle.getCheckSums(
-              new Uint8Array(file),
+              new Uint8Array(data),
             );
+
             const { contentLength, expectCheckSums } = hashResult;
 
             console.log('offChainData', offChainData);
             console.log('hashResult', hashResult);
-
+            setProgress(50);
+            setStatus('Calculated object hash. Creating transaction...');
             const createObjectTx = await client.object.createObject(
               {
                 bucketName: createObjectInfo.bucketName,
                 objectName: createObjectInfo.objectName,
                 creator: address,
                 visibility: 'VISIBILITY_TYPE_PRIVATE',
-                fileType: mime.getType(file),
+                fileType: mime.getType(data),
                 redundancyType: 'REDUNDANCY_EC_TYPE',
                 contentLength,
                 expectCheckSums: JSON.parse(expectCheckSums),
@@ -171,7 +167,6 @@ export const CreateObject = () => {
                 // privateKey: ACCOUNT_PRIVATEKEY,
               },
             );
-
             const simulateInfo = await createObjectTx.simulate({
               denom: 'BNB',
             });
@@ -187,35 +182,18 @@ export const CreateObject = () => {
             });
 
             console.log('res', res);
-
-            if (res.code === 0) {
-              alert('create object tx success');
-
-              setTxHash(res.transactionHash);
-            }
-          }}
-        >
-          1. create object tx
-        </button>
-        <br />
-        <button
-          onClick={async () => {
-            if (!address || !file || !txHash) return;
-            console.log(file);
-
-            const provider = await connector?.getProvider();
-            const offChainData = await getOffchainAuthKeys(address, provider);
-            if (!offChainData) {
-              alert('No offchain, please create offchain pairs first');
+            if (res.code !== 0) {
+              setStatus('Failed to create object transaction');
               return;
             }
-
+            setProgress(70);
+            setStatus('Object transaction created. Uploading...');
             const uploadRes = await client.object.uploadObject(
               {
                 bucketName: createObjectInfo.bucketName,
                 objectName: createObjectInfo.objectName,
-                body: file,
-                txnHash: txHash,
+                body: data,
+                txnHash: res.transactionHash,
               },
               {
                 type: 'EDDSA',
@@ -227,14 +205,20 @@ export const CreateObject = () => {
             console.log('uploadRes', uploadRes);
 
             if (uploadRes.code === 0) {
-              alert('success');
+              setProgress(100);
+              setStatus('Upload successful!');
             }
           }}
-        >
-          2. upload
+      >
+        Migrate object
         </button>
-        <br />
       </>
+      <div>
+        <strong>Status: </strong>{status}
+      </div>
+      <div>
+      <LoadingBar progress={progress} />
+      </div>
     </div>
   );
 };
