@@ -14,7 +14,6 @@ export const CreateBucket = () => {
 
   return (
     <>
-      <h4>Create Bucket</h4>
       bucket name :
       <input
         value={createBucketInfo.bucketName}
@@ -78,7 +77,7 @@ export const CreateBucket = () => {
           }
         }}
       >
-        broadcast with simulate
+        Create
       </button>
     </>
   );

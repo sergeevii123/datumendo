@@ -12,17 +12,14 @@ export default function Home() {
   if (!isMounted) return null;
 
   return (
-    <div style={{ padding: 10 }}>
+    <div style={{ padding: 10}} >
       <WalletInfo />
-      
-      <hr style={{ margin: '10px 0' }} />
 
       {isConnected && (
         <>
           <Bucket />
           <hr style={{ margin: '10px 0' }} />
           <ObjectComponent />
-          <hr style={{ margin: '10px 0' }} />
         </>
       )}
     </div>
