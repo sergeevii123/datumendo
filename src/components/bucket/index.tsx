@@ -1,5 +1,4 @@
 import { CreateBucket } from './create';
-import { BucketInfo } from './info';
 
 export const Bucket = () => {
   return (

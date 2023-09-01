@@ -20,6 +20,29 @@ async function downloadIpfsFile(ipfs: any, cid: any) {
 
   return uint8ArrayConcat(data);
 }
+
+async function downloadFile(finalURL: any) {
+  let data = [];
+
+  // Fetch the file from the given URL
+  const res = await fetch(finalURL);
+
+  const reader = res.body.getReader();
+    
+  // Read the stream
+  while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+          break;
+      }
+
+      data.push(value);
+  }
+
+  return uint8ArrayConcat(data);
+}
+
 export const CreateObject = () => {
   const { address, connector } = useAccount();
   const [file, setFile] = useState<File>();
@@ -79,13 +102,27 @@ export const CreateObject = () => {
               alert('Please set link');
               return;
             }
-            const cid = linkInfo.link.replaceAll("ipfs://", "");
-            
-            console.log("Downloading file:", cid);
-            
-            const data = await downloadIpfsFile(ipfs, cid);
-            setFile(data);
-            alert('download object success');
+            if (!linkInfo.link.startsWith("ipfs://") && !linkInfo.link.startsWith("ar://")) {
+              alert('Please insert link with ipfs:// or ar://');
+              return;
+            }
+            if (linkInfo.link.startsWith("ipfs://")) {
+              const cid = linkInfo.link.replaceAll("ipfs://", "");
+              
+              console.log("Downloading file:", cid);
+              
+              const data = await downloadIpfsFile(ipfs, cid);
+              setFile(data);
+              alert('download object success');
+            } else {
+              const finalUrl = linkInfo.link.replaceAll("ar://", "https://arweave.net/");
+              console.log("Downloading file: " + finalUrl);
+              
+
+              const data = await downloadFile(finalUrl);
+              setFile(data);
+              alert('download object success');
+            }
           }}
       >
         Download
@@ -197,54 +234,6 @@ export const CreateObject = () => {
           2. upload
         </button>
         <br />
-        <button
-          onClick={async () => {
-            if (!address) return;
-
-            const provider = await connector?.getProvider();
-            const offChainData = await getOffchainAuthKeys(address, provider);
-            if (!offChainData) {
-              alert('No offchain, please create offchain pairs first');
-              return;
-            }
-
-            const createFolderTx = await client.object.createFolder(
-              {
-                bucketName: createObjectInfo.bucketName,
-                objectName: createObjectInfo.objectName + '/',
-                creator: address,
-              },
-              {
-                type: 'EDDSA',
-                domain: window.location.origin,
-                seed: offChainData.seedString,
-                address,
-              },
-            );
-
-            const simulateInfo = await createFolderTx.simulate({
-              denom: 'BNB',
-            });
-
-            console.log('simulateInfo', simulateInfo);
-
-            const res = await createFolderTx.broadcast({
-              denom: 'BNB',
-              gasLimit: Number(simulateInfo?.gasLimit),
-              gasPrice: simulateInfo?.gasPrice || '5000000000',
-              payer: address,
-              granter: '',
-            });
-
-            console.log('res', res);
-
-            if (res.code === 0) {
-              alert('success');
-            }
-          }}
-        >
-          create folder
-        </button>
       </>
     </div>
   );

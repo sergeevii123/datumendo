@@ -21,8 +21,6 @@ export default function Home() {
         <>
           <Bucket />
           <hr style={{ margin: '10px 0' }} />
-          {/* <DownloaderComponent /> */}
-          {/* <hr style={{ margin: '10px 0' }} /> */}
           <ObjectComponent />
           <hr style={{ margin: '10px 0' }} />
         </>

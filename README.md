@@ -12,7 +12,13 @@ npm run arweave ar://LTo0PPHhYqDHL7wnlqBY1VZP610-DSfVTas7jl3BzX4/1.png
 pnpm install
 ```
 
-### start app
+### start app in dev
 ```
 npx next dev
+```
+
+### start app in prd
+```
+npx next build
+npx next start
 ```
