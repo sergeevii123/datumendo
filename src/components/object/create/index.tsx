@@ -51,7 +51,7 @@ export const CreateObject = () => {
     bucketName: '',
     objectName: '',
   });
-  const ipfs = ipfsClient("http://gateway.ipfs.io")
+  const ipfs = ipfsClient("https://gateway.ipfs.io/")
   const [linkInfo, setLinkInfo] = useState({
     link: '',
   });
