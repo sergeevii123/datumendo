@@ -17,7 +17,7 @@ export const CreateBucket = ({ appendLog }) => {
       <h4>Bucket name :</h4>
       <input class="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
         value={createBucketInfo.bucketName}
-        style={{ width: '300px', marginBottom: 5}}
+        style={{ width: '60%', marginBottom: 5}}
         placeholder="bucket name"
         onChange={(e) => {
           setCreateBucketInfo({ ...createBucketInfo, bucketName: e.target.value });
