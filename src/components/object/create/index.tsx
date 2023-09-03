@@ -73,7 +73,7 @@ export const CreateObject = ({ appendLog }) => {
           class=" h-[100px] overflow-y-auto p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
           value={linkInfo.links.join('\n')}
           placeholder="links separated by newline"
-          style={{ width: '700px', marginBottom: 5 }}
+          style={{ width: '600px', marginBottom: 5 }}
           onChange={(e) => {
             const newLinks = e.target.value.split('\n');
             setLinkInfo({ ...linkInfo, links: newLinks });

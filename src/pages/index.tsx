@@ -22,7 +22,8 @@ export default function Home() {
   if (!isMounted) return null;
 
   return (
-    <div class="grid grid-flow-col grid-rows-4 grid-cols-5 gap-8 bg-zinc-200">
+    <div className="min-h-screen bg-zinc-200">
+    <div class="grid grid-flow-col grid-rows-3 grid-cols-5 gap-8">
       <div className="row-start-1 col-start-2 self-end ">
       
         {/* <img src="/logo.png" alt="Logo" class="h-auto w-1/2"/> */}
@@ -55,6 +56,7 @@ export default function Home() {
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 }

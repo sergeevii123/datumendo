@@ -602,6 +602,10 @@ video {
   height: auto;
 }
 
+.min-h-screen {
+  min-height: 100vh;
+}
+
 .w-32 {
   width: 8rem;
 }
@@ -628,6 +632,10 @@ video {
 
 .grid-rows-4 {
   grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+.grid-rows-3 {
+  grid-template-rows: repeat(3, minmax(0, 1fr));
 }
 
 .items-center {
