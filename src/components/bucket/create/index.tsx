@@ -4,7 +4,7 @@ import { getOffchainAuthKeys } from '@/utils/offchainAuth';
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 
-export const CreateBucket = () => {
+export const CreateBucket = ({ appendLog }) => {
   const { address, connector } = useAccount();
   const [createBucketInfo, setCreateBucketInfo] = useState<{
     bucketName: string;
@@ -14,26 +14,27 @@ export const CreateBucket = () => {
 
   return (
     <>
-      bucket name :
-      <input
+      <h4>Bucket name :</h4>
+      <input class="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
         value={createBucketInfo.bucketName}
+        style={{ marginBottom: 5}}
         placeholder="bucket name"
         onChange={(e) => {
           setCreateBucketInfo({ ...createBucketInfo, bucketName: e.target.value });
         }}
       />
       <br />
-      <button
+      <button class="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg" 
         onClick={async () => {
           if (!address) return;
 
           const spInfo = await selectSp();
           console.log('spInfo', spInfo);
-
+          appendLog('Starting create bucket ' + createBucketInfo.bucketName);
           const provider = await connector?.getProvider();
           const offChainData = await getOffchainAuthKeys(address, provider);
           if (!offChainData) {
-            alert('No offchain, please create offchain pairs first');
+            appendLog('No offchain, please create offchain pairs first');
             return;
           }
 
@@ -73,7 +74,7 @@ export const CreateBucket = () => {
           });
 
           if (res.code === 0) {
-            alert('success');
+            appendLog('Successful create bucket ' + createBucketInfo.bucketName );
           }
         }}
       >

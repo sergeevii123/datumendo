@@ -1,12 +1,11 @@
 import { CreateObject } from './create';
 
-export const ObjectComponent = () => {
+export const ObjectComponent = ({ appendLog }) => {
   return (
     <>
-      <h2>Migrate object from IPFS, Arweave</h2>
-      <CreateObject />
+      <h2 class="text-3xl font-bold ">Migrate object from IPFS, Arweave</h2>
+      <CreateObject appendLog={appendLog} />
 
-      <div style={{ marginTop: 10 }} />
     </>
   );
 };

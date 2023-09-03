@@ -6,17 +6,18 @@ import { useAccount } from 'wagmi';
 import ipfsClient from 'ipfs-http-client';
 import uint8ArrayConcat from "uint8arrays/concat";
 import mime from 'mime';
+import * as FileHandle from "@bnb-chain/greenfiled-file-handle";
 import LoadingBar from './loading_bar';
 
 async function downloadIpfsFile(ipfs: any, cid: any) {
   let data = [];
 
   for await (const file of ipfs.get(cid)) {
-      if (file.type == "file" && file.content) {
-          for await (const chunk of file.content) {
-              data.push(chunk);
-          }
+    if (file.type == "file" && file.content) {
+      for await (const chunk of file.content) {
+        data.push(chunk);
       }
+    }
   }
 
   return uint8ArrayConcat(data);
@@ -29,39 +30,37 @@ async function downloadFile(finalURL: any) {
   const res = await fetch(finalURL);
 
   const reader = res.body.getReader();
-    
+
   // Read the stream
   while (true) {
-      const { done, value } = await reader.read();
+    const { done, value } = await reader.read();
 
-      if (done) {
-          break;
-      }
+    if (done) {
+      break;
+    }
 
-      data.push(value);
+    data.push(value);
   }
 
   return uint8ArrayConcat(data);
 }
 
-export const CreateObject = () => {
+export const CreateObject = ({ appendLog }) => {
   const { address, connector } = useAccount();
-  const [status, setStatus] = useState<string>('');
   const [createObjectInfo, setCreateObjectInfo] = useState({
     bucketName: '',
-    objectName: '',
   });
-  const ipfs = ipfsClient("https://gateway.ipfs.io/")
+  const ipfs = ipfsClient("https://gateway.ipfs.io/");
   const [linkInfo, setLinkInfo] = useState({
-    link: '',
+    links: [],
   });
   const [progress, setProgress] = useState(0);
 
   return (
     <div>
       <>
-        bucket name :
-        <input
+        <h4>Bucket name :</h4>
+        <input class="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
           value={createObjectInfo.bucketName}
           placeholder="bucket name"
           onChange={(e) => {
@@ -69,156 +68,148 @@ export const CreateObject = () => {
           }}
         />
         <br />
-        object name :
-        <input
-          value={createObjectInfo.objectName}
-          placeholder="object name"
-          style={{ marginBottom: 20 }}
+        <h4>Input IPFS/Arweave links</h4>
+        <textarea
+          class=" h-[100px] overflow-y-auto p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+          value={linkInfo.links.join('\n')}
+          placeholder="links separated by newline"
+          style={{ width: '700px', marginBottom: 5 }}
           onChange={(e) => {
-            setCreateObjectInfo({ ...createObjectInfo, objectName: e.target.value });
+            const newLinks = e.target.value.split('\n');
+            setLinkInfo({ ...linkInfo, links: newLinks });
           }}
         />
         <br />
-        {/* <input
-          type="file"
-          placeholder="select a file"
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            if (e.target.files) {
-              setFile(e.target.files[0]);
-            }
-          }}
-        /> */}
-        <h4>Input IPFS/Arweave link</h4>
-        <input
-          value={linkInfo.link}
-          placeholder="link"
-          style={{ width: '600px', marginBottom: 5 }} 
-          onChange={(e) => {
-            setLinkInfo({ ...linkInfo, link: e.target.value });
-          }}
-        />
-        <br />
-        <button style={{ marginBottom: 10 }}
+        <button class="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
           onClick={async () => {
-            setStatus('Initializing...');
-            if (!linkInfo ) {
-              setStatus('Please set link');
+            appendLog('Initializing...');
+            if (!linkInfo || !linkInfo.links.length) {
+              appendLog('Please set links');
               return;
             }
             if (!address) {
-              setStatus('Please select an address');
+              appendLog('Please select an address');
               return;
             }
-            if (!linkInfo.link.startsWith("ipfs://") && !linkInfo.link.startsWith("ar://")) {
-              setStatus('Please insert link with ipfs:// or ar://');
-              return;
-            }
-            let data;
-            setStatus('Downloading data...');
-            setProgress(10);
-            if (linkInfo.link.startsWith("ipfs://")) {
-              const cid = linkInfo.link.replaceAll("ipfs://", "");
-              console.log("Downloading file:", cid);
-              data = await downloadIpfsFile(ipfs, cid);
-            } else {
-              const finalUrl = linkInfo.link.replaceAll("ar://", "https://arweave.net/");
-              console.log("Downloading file: " + finalUrl);
-              data = await downloadFile(finalUrl);
-            }
-            if (!data) {
-              setStatus('Failed to download data');
-              return;
-            }
-            setProgress(30);
-            setStatus('Data downloaded. Calculating object hash...');
-            const provider = await connector?.getProvider();
-            const offChainData = await getOffchainAuthKeys(address, provider);
-            if (!offChainData) {
-              setStatus('No offchain, please create offchain pairs first');
-              return;
-            }
-            const hashResult = await (window as any).FileHandle.getCheckSums(
-              new Uint8Array(data),
-            );
+            for (const singleLink of linkInfo.links) {
+              if (!singleLink.startsWith("ipfs://") && !singleLink.startsWith("ar://")) {
+                appendLog('Please insert link with ipfs:// or ar://');
+                return;
+              }
+              let data, objectName;
+              setProgress(10);
+              appendLog("Downloading file: "+ singleLink);
+              if (singleLink.startsWith("ipfs://")) {
+                const cid = singleLink.replaceAll("ipfs://", "");
+                data = await downloadIpfsFile(ipfs, cid);
+                objectName = cid.split('/').slice(-1)[0];
+              } else {
+                const finalUrl = singleLink.replaceAll("ar://", "https://arweave.net/");
+                data = await downloadFile(finalUrl);
+                objectName = finalUrl.split('/').slice(-1)[0];
+              }
+              if (!data) {
+                appendLog('Failed to download data');
+                return;
+              }
+              setProgress(30);
+              appendLog('Data downloaded. Calculating object hash...');
+              const provider = await connector?.getProvider();
+              const offChainData = await getOffchainAuthKeys(address, provider);
+              if (!offChainData) {
+                appendLog('No offchain, please create offchain pairs first');
+                return;
+              }
+              const dataArray = new Uint8Array(data);
+              const dataSizeInMegabytes = Math.ceil(dataArray.length / (1024 * 1024));
+              console.log('dataSizeInMegabytes', dataSizeInMegabytes);
+              const hashResult = await FileHandle.getCheckSums(
+                dataArray,
+                dataSizeInMegabytes * 1024 * 1024, // 16 * 1024 * 1024
+                4,
+                2
+              );
 
-            const { contentLength, expectCheckSums } = hashResult;
+              const { contentLength, expectCheckSums } = hashResult;
 
-            console.log('offChainData', offChainData);
-            console.log('hashResult', hashResult);
-            setProgress(50);
-            setStatus('Calculated object hash. Creating transaction...');
-            const createObjectTx = await client.object.createObject(
-              {
-                bucketName: createObjectInfo.bucketName,
-                objectName: createObjectInfo.objectName,
-                creator: address,
-                visibility: 'VISIBILITY_TYPE_PRIVATE',
-                fileType: mime.getType(data),
-                redundancyType: 'REDUNDANCY_EC_TYPE',
-                contentLength,
-                expectCheckSums: JSON.parse(expectCheckSums),
-              },
-              {
-                type: 'EDDSA',
-                domain: window.location.origin,
-                seed: offChainData.seedString,
-                address,
-                // type: 'ECDSA',
-                // privateKey: ACCOUNT_PRIVATEKEY,
-              },
-            );
-            const simulateInfo = await createObjectTx.simulate({
-              denom: 'BNB',
-            });
+              console.log('offChainData', offChainData);
+              console.log('hashResult ', hashResult);
+              setProgress(50);
+              appendLog('Calculated object hash. Creating transaction...');
+              const createObjectTx = await client.object.createObject(
+                {
+                  bucketName: createObjectInfo.bucketName,
+                  objectName: objectName,
+                  creator: address,
+                  visibility: 'VISIBILITY_TYPE_PRIVATE',
+                  fileType: mime.getType(data),
+                  redundancyType: 'REDUNDANCY_EC_TYPE',
+                  contentLength,
+                  expectCheckSums: JSON.parse(expectCheckSums),
+                },
+                {
+                  type: 'EDDSA',
+                  domain: window.location.origin,
+                  seed: offChainData.seedString,
+                  address,
+                  // type: 'ECDSA',
+                  // privateKey: ACCOUNT_PRIVATEKEY,
+                },
+              );
+              const simulateInfo = await createObjectTx.simulate({
+                denom: 'BNB',
+              });
 
-            console.log('simulateInfo', simulateInfo);
+              console.log('simulateInfo', simulateInfo);
 
-            const res = await createObjectTx.broadcast({
-              denom: 'BNB',
-              gasLimit: Number(simulateInfo?.gasLimit),
-              gasPrice: simulateInfo?.gasPrice || '5000000000',
-              payer: address,
-              granter: '',
-            });
+              const res = await createObjectTx.broadcast({
+                denom: 'BNB',
+                gasLimit: Number(simulateInfo?.gasLimit),
+                gasPrice: simulateInfo?.gasPrice || '5000000000',
+                payer: address,
+                granter: '',
+              });
 
-            console.log('res', res);
-            if (res.code !== 0) {
-              setStatus('Failed to create object transaction');
-              return;
-            }
-            setProgress(70);
-            setStatus('Object transaction created. Uploading...');
-            const uploadRes = await client.object.uploadObject(
-              {
-                bucketName: createObjectInfo.bucketName,
-                objectName: createObjectInfo.objectName,
-                body: data,
-                txnHash: res.transactionHash,
-              },
-              {
-                type: 'EDDSA',
-                domain: window.location.origin,
-                seed: offChainData.seedString,
-                address,
-              },
-            );
-            console.log('uploadRes', uploadRes);
+              console.log('res', res);
+              if (res.code !== 0) {
+                appendLog('Failed to create object transaction');
+                return;
+              }
+              setProgress(70);
+              appendLog('Object transaction created. Uploading...');
+              // const provider = await connector?.getProvider();
+              // const offChainData = await getOffchainAuthKeys(address, provider);
+              let uploadRes = await client.object.uploadObject(
+                {
+                  bucketName: createObjectInfo.bucketName,
+                  objectName: objectName,
+                  body: data,
+                  txnHash: res.transactionHash,
+                },
+                {
+                  type: 'EDDSA',
+                  domain: window.location.origin,
+                  seed: offChainData.seedString,
+                  address,
+                },
+              );
+              console.log('uploadRes', uploadRes);
 
-            if (uploadRes.code === 0) {
-              setProgress(100);
-              setStatus('Upload successful!');
+              if (uploadRes.code === 0) {
+                setProgress(100);
+                appendLog('Upload successful!');
+                appendLog("https://greenfieldscan.com/tx/"+res.transactionHash, true);
+              }
             }
           }}
-      >
-        Migrate object
+        >
+          Migrate objects
         </button>
       </>
       <div>
-        <strong>Status: </strong>{status}
+        <LoadingBar progress={progress} />
       </div>
-      <div>
-      <LoadingBar progress={progress} />
-      </div>
+      
     </div>
   );
 };
