@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi';
 import ipfsClient from 'ipfs-http-client';
 import uint8ArrayConcat from "uint8arrays/concat";
 import mime from 'mime';
+import * as FileHandle from "@bnb-chain/greenfiled-file-handle";
 import LoadingBar from './loading_bar';
 
 async function downloadIpfsFile(ipfs: any, cid: any) {
@@ -49,7 +50,6 @@ export const CreateObject = () => {
   const [status, setStatus] = useState<string>('');
   const [createObjectInfo, setCreateObjectInfo] = useState({
     bucketName: '',
-    objectName: '',
   });
   const ipfs = ipfsClient("https://gateway.ipfs.io/")
   const [linkInfo, setLinkInfo] = useState({
@@ -60,8 +60,8 @@ export const CreateObject = () => {
   return (
     <div>
       <>
-        bucket name :
-        <input
+        <h4>Bucket name :</h4>
+        <input class="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
           value={createObjectInfo.bucketName}
           placeholder="bucket name"
           onChange={(e) => {
@@ -69,36 +69,19 @@ export const CreateObject = () => {
           }}
         />
         <br />
-        object name :
-        <input
-          value={createObjectInfo.objectName}
-          placeholder="object name"
-          style={{ marginBottom: 20 }}
-          onChange={(e) => {
-            setCreateObjectInfo({ ...createObjectInfo, objectName: e.target.value });
-          }}
-        />
-        <br />
-        {/* <input
-          type="file"
-          placeholder="select a file"
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            if (e.target.files) {
-              setFile(e.target.files[0]);
-            }
-          }}
-        /> */}
         <h4>Input IPFS/Arweave link</h4>
-        <input
+        <textarea
+          class=" h-[100px] overflow-y-auto p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+          rows="1"
           value={linkInfo.link}
           placeholder="link"
-          style={{ width: '600px', marginBottom: 5 }} 
+          style={{ width: '700px', marginBottom: 5 }}
           onChange={(e) => {
             setLinkInfo({ ...linkInfo, link: e.target.value });
           }}
         />
         <br />
-        <button style={{ marginBottom: 10 }}
+        <button class="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg" 
           onClick={async () => {
             setStatus('Initializing...');
             if (!linkInfo ) {
@@ -113,17 +96,19 @@ export const CreateObject = () => {
               setStatus('Please insert link with ipfs:// or ar://');
               return;
             }
-            let data;
+            let data, objectName;
             setStatus('Downloading data...');
             setProgress(10);
             if (linkInfo.link.startsWith("ipfs://")) {
               const cid = linkInfo.link.replaceAll("ipfs://", "");
               console.log("Downloading file:", cid);
               data = await downloadIpfsFile(ipfs, cid);
+              objectName = cid.split('/').slice(-1)[0];
             } else {
               const finalUrl = linkInfo.link.replaceAll("ar://", "https://arweave.net/");
               console.log("Downloading file: " + finalUrl);
               data = await downloadFile(finalUrl);
+              objectName = finalUrl.split('/').slice(-1)[0];
             }
             if (!data) {
               setStatus('Failed to download data');
@@ -137,8 +122,11 @@ export const CreateObject = () => {
               setStatus('No offchain, please create offchain pairs first');
               return;
             }
-            const hashResult = await (window as any).FileHandle.getCheckSums(
+            const hashResult = await FileHandle.getCheckSums(
               new Uint8Array(data),
+              16 * 1024 * 1024,
+              4,
+              2
             );
 
             const { contentLength, expectCheckSums } = hashResult;
@@ -150,7 +138,7 @@ export const CreateObject = () => {
             const createObjectTx = await client.object.createObject(
               {
                 bucketName: createObjectInfo.bucketName,
-                objectName: createObjectInfo.objectName,
+                objectName: objectName,
                 creator: address,
                 visibility: 'VISIBILITY_TYPE_PRIVATE',
                 fileType: mime.getType(data),
@@ -188,10 +176,12 @@ export const CreateObject = () => {
             }
             setProgress(70);
             setStatus('Object transaction created. Uploading...');
+            // const provider = await connector?.getProvider();
+            // const offChainData = await getOffchainAuthKeys(address, provider);
             const uploadRes = await client.object.uploadObject(
               {
                 bucketName: createObjectInfo.bucketName,
-                objectName: createObjectInfo.objectName,
+                objectName: objectName,
                 body: data,
                 txnHash: res.transactionHash,
               },
