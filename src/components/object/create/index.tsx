@@ -45,13 +45,12 @@ async function downloadFile(finalURL: any) {
   return uint8ArrayConcat(data);
 }
 
-export const CreateObject = () => {
+export const CreateObject = ({ appendLog }) => {
   const { address, connector } = useAccount();
-  const [status, setStatus] = useState<string>('');
   const [createObjectInfo, setCreateObjectInfo] = useState({
     bucketName: '',
   });
-  const ipfs = ipfsClient("https://gateway.ipfs.io/")
+  const ipfs = ipfsClient("https://gateway.ipfs.io/");
   const [linkInfo, setLinkInfo] = useState({
     links: [],
   });
@@ -72,61 +71,58 @@ export const CreateObject = () => {
         <h4>Input IPFS/Arweave links</h4>
         <textarea
           class=" h-[100px] overflow-y-auto p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
-          rows="1"
           value={linkInfo.links.join('\n')}
-          placeholder="links separated by comma or newline"
+          placeholder="links separated by newline"
           style={{ width: '700px', marginBottom: 5 }}
           onChange={(e) => {
-            const newLinks = e.target.value.split(/\s*[,|\n]\s*/).filter(Boolean); // split the string into an array based on comma or newline
+            const newLinks = e.target.value.split('\n');
             setLinkInfo({ ...linkInfo, links: newLinks });
           }}
         />
         <br />
-        <button class="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg"
+        <button class="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
           onClick={async () => {
-            setStatus('Initializing...');
+            appendLog('Initializing...');
             if (!linkInfo || !linkInfo.links.length) {
-              setStatus('Please set links');
+              appendLog('Please set links');
               return;
             }
             if (!address) {
-              setStatus('Please select an address');
+              appendLog('Please select an address');
               return;
             }
             for (const singleLink of linkInfo.links) {
               if (!singleLink.startsWith("ipfs://") && !singleLink.startsWith("ar://")) {
-                setStatus('Please insert link with ipfs:// or ar://');
+                appendLog('Please insert link with ipfs:// or ar://');
                 return;
               }
               let data, objectName;
-              setStatus('Downloading data...');
               setProgress(10);
+              appendLog("Downloading file: "+ singleLink);
               if (singleLink.startsWith("ipfs://")) {
                 const cid = singleLink.replaceAll("ipfs://", "");
-                console.log("Downloading file:", cid);
                 data = await downloadIpfsFile(ipfs, cid);
                 objectName = cid.split('/').slice(-1)[0];
               } else {
                 const finalUrl = singleLink.replaceAll("ar://", "https://arweave.net/");
-                console.log("Downloading file: " + finalUrl);
                 data = await downloadFile(finalUrl);
                 objectName = finalUrl.split('/').slice(-1)[0];
               }
               if (!data) {
-                setStatus('Failed to download data');
+                appendLog('Failed to download data');
                 return;
               }
               setProgress(30);
-              setStatus('Data downloaded. Calculating object hash...');
+              appendLog('Data downloaded. Calculating object hash...');
               const provider = await connector?.getProvider();
               const offChainData = await getOffchainAuthKeys(address, provider);
               if (!offChainData) {
-                setStatus('No offchain, please create offchain pairs first');
+                appendLog('No offchain, please create offchain pairs first');
                 return;
               }
               const hashResult = await FileHandle.getCheckSums(
                 new Uint8Array(data),
-                1 * 1024 * 1024,
+                16 * 1024 * 1024,
                 4,
                 2
               );
@@ -134,9 +130,9 @@ export const CreateObject = () => {
               const { contentLength, expectCheckSums } = hashResult;
 
               console.log('offChainData', offChainData);
-              console.log('hashResult', hashResult);
+              console.log('hashResult ', hashResult);
               setProgress(50);
-              setStatus('Calculated object hash. Creating transaction...');
+              appendLog('Calculated object hash. Creating transaction...');
               const createObjectTx = await client.object.createObject(
                 {
                   bucketName: createObjectInfo.bucketName,
@@ -173,14 +169,14 @@ export const CreateObject = () => {
 
               console.log('res', res);
               if (res.code !== 0) {
-                setStatus('Failed to create object transaction');
+                appendLog('Failed to create object transaction');
                 return;
               }
               setProgress(70);
-              setStatus('Object transaction created. Uploading...');
+              appendLog('Object transaction created. Uploading...');
               // const provider = await connector?.getProvider();
               // const offChainData = await getOffchainAuthKeys(address, provider);
-              const uploadRes = await client.object.uploadObject(
+              let uploadRes = await client.object.uploadObject(
                 {
                   bucketName: createObjectInfo.bucketName,
                   objectName: objectName,
@@ -198,7 +194,8 @@ export const CreateObject = () => {
 
               if (uploadRes.code === 0) {
                 setProgress(100);
-                setStatus('Upload successful!');
+                appendLog('Upload successful!');
+                appendLog(res.transactionHash);
               }
             }
           }}
@@ -207,11 +204,9 @@ export const CreateObject = () => {
         </button>
       </>
       <div>
-        <strong>Status: </strong>{status}
-      </div>
-      <div>
         <LoadingBar progress={progress} />
       </div>
+      
     </div>
   );
 };

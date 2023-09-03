@@ -1,10 +1,10 @@
 import { CreateBucket } from './create';
 
-export const Bucket = () => {
+export const Bucket = ({ appendLog }) => {
   return (
     <div>
       <h2 class="text-3xl font-bold ">Create Bucket</h2>
-      <CreateBucket />
+      <CreateBucket appendLog={appendLog} />
 
     </div>
   );
