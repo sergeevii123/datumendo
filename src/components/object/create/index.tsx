@@ -120,9 +120,12 @@ export const CreateObject = ({ appendLog }) => {
                 appendLog('No offchain, please create offchain pairs first');
                 return;
               }
+              const dataArray = new Uint8Array(data);
+              const dataSizeInMegabytes = Math.ceil(dataArray.length / (1024 * 1024));
+              console.log('dataSizeInMegabytes', dataSizeInMegabytes);
               const hashResult = await FileHandle.getCheckSums(
-                new Uint8Array(data),
-                16 * 1024 * 1024,
+                dataArray,
+                dataSizeInMegabytes * 1024 * 1024, // 16 * 1024 * 1024
                 4,
                 2
               );
@@ -195,7 +198,7 @@ export const CreateObject = ({ appendLog }) => {
               if (uploadRes.code === 0) {
                 setProgress(100);
                 appendLog('Upload successful!');
-                appendLog(res.transactionHash);
+                appendLog("https://greenfieldscan.com/tx/"+res.transactionHash, true);
               }
             }
           }}

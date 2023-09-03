@@ -11,8 +11,8 @@ export default function Home() {
   const { isConnected } = useAccount();
   const [logs, setLogs] = useState([]);
   const logEndRef = useRef(null);
-  const appendLog = (message) => {
-    setLogs((prevLogs) => [...prevLogs, message]);
+  const appendLog = (message, isLink = false) => {
+    setLogs((prevLogs) => [...prevLogs, { message, isLink }]);
   };
   useEffect(() => {
     if (logEndRef.current) {
@@ -44,8 +44,16 @@ export default function Home() {
       <div  ref={logEndRef} class="row-start-3 col-start-2 col-span-3 bg-white rounded-lg shadow-lg p-4" style={{ height: '200px', overflowY: 'scroll' }}>
       <h4>Logs :</h4>
       {logs.map((log, index) => (
-        <div key={index}>{log}</div>
-      ))}
+          <div key={index}>
+            {log.isLink ? (
+              <a href={log.message} target="_blank" rel="noopener noreferrer" class="underline">
+                {log.message}
+              </a>
+            ) : (
+              log.message
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
