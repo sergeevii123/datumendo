@@ -15,7 +15,7 @@ export default function Home() {
     <div class="grid grid-flow-col grid-rows-4 grid-cols-5 gap-8 bg-zinc-200">
       <div className="row-start-1 col-start-2 self-end ">
       
-        <img src="/logo.png" alt="Logo" class="h-auto w-1/2"/>
+        {/* <img src="/logo.png" alt="Logo" class="h-auto w-1/2"/> */}
         
       </div>
       <div class="row-start-1 col-start-3 col-span-2 self-end ">
