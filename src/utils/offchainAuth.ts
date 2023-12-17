@@ -20,6 +20,7 @@ export const getOffchainAuthKeys = async (address: string, provider: any) => {
   }
 
   const allSps = await getAllSps();
+  console.log(address);
   const offchainAuthRes = await client.offchainauth.genOffChainAuthKeyPairAndUpload(
     {
       sps: allSps,
