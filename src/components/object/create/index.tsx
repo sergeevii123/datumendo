@@ -60,7 +60,7 @@ export const CreateObject = ({ appendLog }) => {
     <div>
       <>
         <h4>Bucket name :</h4>
-        <input class="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+        <input className="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
           value={createObjectInfo.bucketName}
           placeholder="bucket name"
           onChange={(e) => {
@@ -70,7 +70,7 @@ export const CreateObject = ({ appendLog }) => {
         <br />
         <h4>Input IPFS/Arweave links</h4>
         <textarea
-          class=" h-[100px] overflow-y-auto p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+          className=" h-[100px] overflow-y-auto p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
           value={linkInfo.links.join('\n')}
           placeholder="links separated by newline"
           style={{ width: '100%', marginBottom: 5 }}
@@ -80,7 +80,7 @@ export const CreateObject = ({ appendLog }) => {
           }}
         />
         <br />
-        <button class="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
+        <button className="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
           onClick={async () => {
             appendLog('Initializing...');
             if (!linkInfo || !linkInfo.links.length) {
