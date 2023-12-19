@@ -9,12 +9,14 @@ import * as env from './env';
 export const GRPC_URL = env.GRPC_URL;
 export const GREENFIELD_RPC_URL = env.GREENFIELD_RPC_URL;
 export const GREEN_CHAIN_ID = env.GREEN_CHAIN_ID;
+export const GREENFIELD_MAINNET_RPC_URL = env.GREENFIELD_MAINNET_RPC_URL;
+export const GREEN_MAINNET_CHAIN_ID = env.GREEN_MAINNET_CHAIN_ID;
 export const BSC_RPC_URL = env.BSC_RPC_URL;
 export const BSC_CHAIN_ID = env.BSC_CHAIN_ID;
 export const TOKEN_HUB_CONTRACT_ADDRESS = env.TOKEN_HUB_CONTRACT_ADDRESS;
 export const CROSS_CHAIN_CONTRACT_ADDRESS = env.CROSS_CHAIN_CONTRACT_ADDRESS;
 
-const greenFieldChain: Chain = {
+const greenFieldTestChain: Chain = {
   id: GREEN_CHAIN_ID,
   network: 'greenfield',
   rpcUrls: {
@@ -25,7 +27,26 @@ const greenFieldChain: Chain = {
       http: [GREENFIELD_RPC_URL],
     },
   },
-  name: 'greenfield',
+  name: 'Greenfield Testnet',
+  nativeCurrency: {
+    name: 'BNB',
+    symbol: 'BNB',
+    decimals: 18,
+  },
+};
+
+const greenFieldMainChain: Chain = {
+  id: GREEN_MAINNET_CHAIN_ID,
+  network: 'greenfield',
+  rpcUrls: {
+    default: {
+      http: [GREENFIELD_MAINNET_RPC_URL],
+    },
+    public: {
+      http: [GREENFIELD_MAINNET_RPC_URL],
+    },
+  },
+  name: 'Greenfield Mainnet',
   nativeCurrency: {
     name: 'BNB',
     symbol: 'BNB',
@@ -58,13 +79,18 @@ const bscChain: Chain = {
 
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [
-    mainnet,
+    // mainnet,
     {
-      ...greenFieldChain,
+      ...greenFieldTestChain,
       iconUrl:
         'https://github.com/wagmi-dev/wagmi/assets/5653652/44446c8c-5c72-4e89-b8eb-3042ef618eed',
     },
-    bscChain,
+    {
+      ...greenFieldMainChain,
+      iconUrl:
+        'https://github.com/wagmi-dev/wagmi/assets/5653652/44446c8c-5c72-4e89-b8eb-3042ef618eed',
+    },
+    // bscChain,
   ],
   [publicProvider()],
 );

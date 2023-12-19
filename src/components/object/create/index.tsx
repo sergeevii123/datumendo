@@ -2,7 +2,7 @@ import { client } from '@/client';
 import { ACCOUNT_PRIVATEKEY } from '@/config/env';
 import { getOffchainAuthKeys } from '@/utils/offchainAuth';
 import { ChangeEvent, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useNetwork } from 'wagmi';
 import ipfsClient from 'ipfs-http-client';
 import uint8ArrayConcat from "uint8arrays/concat";
 import mime from 'mime';
@@ -47,6 +47,7 @@ async function downloadFile(finalURL: any) {
 
 export const CreateObject = ({ appendLog }) => {
   const { address, connector } = useAccount();
+  const { chain } = useNetwork();
   const [createObjectInfo, setCreateObjectInfo] = useState({
     bucketName: '',
   });
@@ -80,7 +81,7 @@ export const CreateObject = ({ appendLog }) => {
           }}
         />
         <br />
-        <button className="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
+        <button className="bg-green-600 px-4 py-2 text-white hover:bg-sky5800 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
           onClick={async () => {
             appendLog('Initializing...');
             if (!linkInfo || !linkInfo.links.length) {
@@ -198,7 +199,12 @@ export const CreateObject = ({ appendLog }) => {
               if (uploadRes.code === 0) {
                 setProgress(100);
                 appendLog('Upload successful!');
-                appendLog("https://greenfieldscan.com/tx/"+res.transactionHash, true);
+                if (chain?.name === 'Greenfield Testnet') {
+                  appendLog("https://testnet.greenfieldscan.com/tx/"+res.transactionHash, true);
+                }
+                if (chain?.name === 'Greenfield Mainnet') {
+                  appendLog("https://greenfieldscan.com/tx/"+res.transactionHash, true);
+                }
               }
             }
           }}

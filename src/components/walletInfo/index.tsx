@@ -5,7 +5,7 @@ export const WalletInfo = () => {
   const { disconnect } = useDisconnect();
   const { isConnected } = useAccount();
   return (
-    <div className={`${isConnected ? '' : 'flex justify-center items-center h-screen'}`}>
+    <div>
       <ConnectButton accountStatus="address" />
     </div>
   );
