@@ -3,8 +3,9 @@ import { ObjectComponent } from '@/components/object';
 import { WalletInfo } from '@/components/walletInfo';
 import { useIsMounted } from '@/hooks/useIsMounted';
 import { useAccount } from 'wagmi';
-import React, { useState, useEffect, useRef  } from 'react';
-// import { DownloaderComponent } from '@/components/downloader';
+import React, { useState, useEffect, useRef } from 'react';
+import { Inter } from "next/font/google";
+const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
   const isMounted = useIsMounted();
@@ -22,29 +23,24 @@ export default function Home() {
   if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-200">
-    <div className="grid grid-flow-col grid-rows-4 grid-cols-5 gap-8">
-      <div className="row-start-1 col-start-2 self-end ">
-      
-        {/* <img src="/logo.png" alt="Logo" class="h-auto w-1/2"/> */}
-        
-      </div>
-      <div className="row-start-1 col-start-3 col-span-2 self-end ">
-      <WalletInfo />
-      </div>
-      {isConnected && (
+    <main
+      className={`${inter.className} min-h-screen flex flex-col bg-gradient-to-br from-green-400 to-gray-100 p-3`}
+    >
+      <header className="flex justify-between items-center mb-8 px-4 py-2 bg-gray-100 rounded-lg shadow-md bg-sub">
+        <h1 className="header-logo">Datumendo</h1>
+        <WalletInfo />
+      </header>
         <>
-          <div className="row-start-2 col-start-2 col-span-1 bg-white rounded-lg shadow-lg p-4">
-          <Bucket appendLog={appendLog} />
+        <div className="max-w-4xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
+            <Bucket appendLog={appendLog} />
           </div>
-          <div className="row-start-2 col-start-3 col-span-2 bg-white rounded-lg shadow-lg p-4">
-          <ObjectComponent appendLog={appendLog} />
+          <div className="max-w-4xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
+            <ObjectComponent appendLog={appendLog} />
           </div>
-          </>
-      )}
-      <div  ref={logEndRef} className="row-start-3 col-start-2 col-span-3 bg-white rounded-lg shadow-lg p-4" style={{ height: '200px', overflowY: 'scroll' }}>
-      <h4>Logs :</h4>
-      {logs.map((log, index) => (
+        </>
+      <div ref={logEndRef} className="max-w-4xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub" style={{ height: '200px', overflowY: 'scroll' }}>
+        <h4>Logs :</h4>
+        {logs.map((log, index) => (
           <div key={index}>
             {log.isLink ? (
               <a href={log.message} target="_blank" rel="noopener noreferrer" className="underline">
@@ -56,7 +52,6 @@ export default function Home() {
           </div>
         ))}
       </div>
-    </div>
-    </div>
+    </main>
   );
 }
