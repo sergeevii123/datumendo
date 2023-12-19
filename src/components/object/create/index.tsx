@@ -81,7 +81,7 @@ export const CreateObject = ({ appendLog }) => {
           }}
         />
         <br />
-        <button className="bg-green-600 px-4 py-2 text-white hover:bg-sky5800 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
+        <button className="bg-green-600 px-4 py-2 text-white hover:bg-green-500 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
           onClick={async () => {
             appendLog('Initializing...');
             if (!linkInfo || !linkInfo.links.length) {
