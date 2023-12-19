@@ -3,12 +3,14 @@ import { ACCOUNT_PRIVATEKEY } from '@/config/env';
 import { getOffchainAuthKeys } from '@/utils/offchainAuth';
 import { ChangeEvent, useState } from 'react';
 import { useAccount, useNetwork } from 'wagmi';
-import ipfsClient from 'ipfs-http-client';
+// import ipfsClient from 'ipfs-http-client';
+// import { createHelia } from 'helia'
 import uint8ArrayConcat from "uint8arrays/concat";
 import mime from 'mime';
 import * as FileHandle from "@bnb-chain/greenfiled-file-handle";
 import LoadingBar from './loading_bar';
 
+/*
 async function downloadIpfsFile(ipfs: any, cid: any) {
   let data = [];
 
@@ -22,6 +24,7 @@ async function downloadIpfsFile(ipfs: any, cid: any) {
 
   return uint8ArrayConcat(data);
 }
+*/
 
 async function downloadFile(finalURL: any) {
   let data = [];
@@ -29,20 +32,31 @@ async function downloadFile(finalURL: any) {
   // Fetch the file from the given URL
   const res = await fetch(finalURL);
 
-  const reader = res.body.getReader();
+  return streamToArrayBuffer(res.body!);
+}
 
-  // Read the stream
+async function streamToArrayBuffer(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  const reader = stream.getReader();
   while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) {
-      break;
-    }
-
-    data.push(value);
+      const { done, value } = await reader.read();
+      if (done) {
+          break;
+      } else {
+          chunks.push(value);
+      }
   }
+  return concatArrayBuffers(chunks);
+}
 
-  return uint8ArrayConcat(data);
+function concatArrayBuffers(chunks: Uint8Array[]): Uint8Array {
+  const result = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
+  let offset = 0;
+  for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+  }
+  return result;
 }
 
 export const CreateObject = ({ appendLog }) => {
@@ -51,7 +65,7 @@ export const CreateObject = ({ appendLog }) => {
   const [createObjectInfo, setCreateObjectInfo] = useState({
     bucketName: '',
   });
-  const ipfs = ipfsClient("https://gateway.ipfs.io/");
+  // const ipfs = ipfsClient("https://gateway.ipfs.io/");
   const [linkInfo, setLinkInfo] = useState({
     links: [],
   });
@@ -102,7 +116,9 @@ export const CreateObject = ({ appendLog }) => {
               appendLog("Downloading file: "+ singleLink);
               if (singleLink.startsWith("ipfs://")) {
                 const cid = singleLink.replaceAll("ipfs://", "");
-                data = await downloadIpfsFile(ipfs, cid);
+                // data = await downloadIpfsFile(ipfs, cid);
+                const finalUrl = singleLink.replaceAll("ipfs://", "https://gateway.ipfs.io/ipfs/");
+                data = await downloadFile(finalUrl);
                 objectName = cid.split('/').slice(-1)[0];
               } else {
                 const finalUrl = singleLink.replaceAll("ar://", "https://arweave.net/");
@@ -137,13 +153,17 @@ export const CreateObject = ({ appendLog }) => {
               console.log('hashResult ', hashResult);
               setProgress(50);
               appendLog('Calculated object hash. Creating transaction...');
+              if (!mime.getType(data)) {
+                appendLog('Can\'t find the data type');
+                return;
+              }
               const createObjectTx = await client.object.createObject(
                 {
                   bucketName: createObjectInfo.bucketName,
                   objectName: objectName,
                   creator: address,
                   visibility: 'VISIBILITY_TYPE_PRIVATE',
-                  fileType: mime.getType(data),
+                  fileType: mime.getType(data)!,
                   redundancyType: 'REDUNDANCY_EC_TYPE',
                   contentLength,
                   expectCheckSums: JSON.parse(expectCheckSums),
