@@ -6,22 +6,6 @@ import { useAccount, useNetwork } from 'wagmi';
 import * as FileHandle from "@bnb-chain/greenfiled-file-handle";
 import LoadingBar from './loading_bar';
 
-/*
-async function downloadIpfsFile(ipfs: any, cid: any) {
-  let data = [];
-
-  for await (const file of ipfs.get(cid)) {
-    if (file.type == "file" && file.content) {
-      for await (const chunk of file.content) {
-        data.push(chunk);
-      }
-    }
-  }
-
-  return uint8ArrayConcat(data);
-}
-*/
-
 async function downloadFile(finalURL: any) {
   let data = [];
 
