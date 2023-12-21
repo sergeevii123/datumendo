@@ -169,9 +169,21 @@ export const CreateObject = ({ appendLog }) => {
                   // privateKey: ACCOUNT_PRIVATEKEY,
                 },
               );
+
+              let simulateError;
               const simulateInfo = await createObjectTx.simulate({
                 denom: 'BNB',
+              })
+              .catch(error => {
+                appendLog('Transaction is likely to fail: ' + error.message);
+                simulateError = true;
               });
+
+              if (simulateError) {
+                setProgress(0);
+                appendLog('Please try again');
+                return;
+              }
 
               console.log('simulateInfo', simulateInfo);
 
