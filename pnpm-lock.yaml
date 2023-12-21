@@ -68,9 +68,6 @@ dependencies:
   long:
     specifier: ^5.2.3
     version: 5.2.3
-  mime:
-    specifier: ^4.0.0
-    version: 4.0.1
   next:
     specifier: ^13.5.6
     version: 13.5.6(react-dom@18.2.0)(react@18.2.0)
@@ -5986,12 +5983,6 @@ packages:
   /mime@3.0.0:
     resolution: {integrity: sha512-jSCU7/VB1loIWBZe14aEYHU/+1UMEHoaO7qxCOVJOw9GgH72VAWppxNcjU+x9a2k3GSIBXNKxXQFqRvvZ7vr3A==}
     engines: {node: '>=10.0.0'}
-    hasBin: true
-    dev: false
-
-  /mime@4.0.1:
-    resolution: {integrity: sha512-5lZ5tyrIfliMXzFtkYyekWbtRXObT9OWa8IwQ5uxTBDHucNNwniRqo0yInflj+iYi5CBa6qxadGzGarDfuEOxA==}
-    engines: {node: '>=16'}
     hasBin: true
     dev: false
 

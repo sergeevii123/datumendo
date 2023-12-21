@@ -3,10 +3,6 @@ import { ACCOUNT_PRIVATEKEY } from '@/config/env';
 import { getOffchainAuthKeys } from '@/utils/offchainAuth';
 import { ChangeEvent, useState } from 'react';
 import { useAccount, useNetwork } from 'wagmi';
-// import ipfsClient from 'ipfs-http-client';
-// import { createHelia } from 'helia'
-import uint8ArrayConcat from "uint8arrays/concat";
-import mime from 'mime';
 import * as FileHandle from "@bnb-chain/greenfiled-file-handle";
 import LoadingBar from './loading_bar';
 
@@ -153,17 +149,13 @@ export const CreateObject = ({ appendLog }) => {
               console.log('hashResult ', hashResult);
               setProgress(50);
               appendLog('Calculated object hash. Creating transaction...');
-              if (!mime.getType(data)) {
-                appendLog('Can\'t find the data type');
-                return;
-              }
               const createObjectTx = await client.object.createObject(
                 {
                   bucketName: createObjectInfo.bucketName,
                   objectName: objectName,
                   creator: address,
                   visibility: 'VISIBILITY_TYPE_PRIVATE',
-                  fileType: mime.getType(data)!,
+                  fileType: "",
                   redundancyType: 'REDUNDANCY_EC_TYPE',
                   contentLength,
                   expectCheckSums: JSON.parse(expectCheckSums),
