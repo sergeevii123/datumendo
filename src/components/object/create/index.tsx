@@ -3,25 +3,8 @@ import { ACCOUNT_PRIVATEKEY } from '@/config/env';
 import { getOffchainAuthKeys } from '@/utils/offchainAuth';
 import { ChangeEvent, useState } from 'react';
 import { useAccount, useNetwork } from 'wagmi';
-import ipfsClient from 'ipfs-http-client';
-import uint8ArrayConcat from "uint8arrays/concat";
-import mime from 'mime';
 import * as FileHandle from "@bnb-chain/greenfiled-file-handle";
 import LoadingBar from './loading_bar';
-
-async function downloadIpfsFile(ipfs: any, cid: any) {
-  let data = [];
-
-  for await (const file of ipfs.get(cid)) {
-    if (file.type == "file" && file.content) {
-      for await (const chunk of file.content) {
-        data.push(chunk);
-      }
-    }
-  }
-
-  return uint8ArrayConcat(data);
-}
 
 async function downloadFile(finalURL: any) {
   let data = [];
@@ -29,20 +12,31 @@ async function downloadFile(finalURL: any) {
   // Fetch the file from the given URL
   const res = await fetch(finalURL);
 
-  const reader = res.body.getReader();
+  return streamToArrayBuffer(res.body!);
+}
 
-  // Read the stream
+async function streamToArrayBuffer(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  const reader = stream.getReader();
   while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) {
-      break;
-    }
-
-    data.push(value);
+      const { done, value } = await reader.read();
+      if (done) {
+          break;
+      } else {
+          chunks.push(value);
+      }
   }
+  return concatArrayBuffers(chunks);
+}
 
-  return uint8ArrayConcat(data);
+function concatArrayBuffers(chunks: Uint8Array[]): Uint8Array {
+  const result = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
+  let offset = 0;
+  for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+  }
+  return result;
 }
 
 export const CreateObject = ({ appendLog }) => {
@@ -51,7 +45,7 @@ export const CreateObject = ({ appendLog }) => {
   const [createObjectInfo, setCreateObjectInfo] = useState({
     bucketName: '',
   });
-  const ipfs = ipfsClient("https://gateway.ipfs.io/");
+  // const ipfs = ipfsClient("https://gateway.ipfs.io/");
   const [linkInfo, setLinkInfo] = useState({
     links: [],
   });
@@ -102,7 +96,9 @@ export const CreateObject = ({ appendLog }) => {
               appendLog("Downloading file: "+ singleLink);
               if (singleLink.startsWith("ipfs://")) {
                 const cid = singleLink.replaceAll("ipfs://", "");
-                data = await downloadIpfsFile(ipfs, cid);
+                // data = await downloadIpfsFile(ipfs, cid);
+                const finalUrl = singleLink.replaceAll("ipfs://", "https://gateway.ipfs.io/ipfs/");
+                data = await downloadFile(finalUrl);
                 objectName = cid.split('/').slice(-1)[0];
               } else {
                 const finalUrl = singleLink.replaceAll("ar://", "https://arweave.net/");
@@ -143,7 +139,7 @@ export const CreateObject = ({ appendLog }) => {
                   objectName: objectName,
                   creator: address,
                   visibility: 'VISIBILITY_TYPE_PRIVATE',
-                  fileType: mime.getType(data),
+                  fileType: "",
                   redundancyType: 'REDUNDANCY_EC_TYPE',
                   contentLength,
                   expectCheckSums: JSON.parse(expectCheckSums),
@@ -157,9 +153,21 @@ export const CreateObject = ({ appendLog }) => {
                   // privateKey: ACCOUNT_PRIVATEKEY,
                 },
               );
+
+              let simulateError;
               const simulateInfo = await createObjectTx.simulate({
                 denom: 'BNB',
+              })
+              .catch(error => {
+                appendLog('Transaction is likely to fail: ' + error.message);
+                simulateError = true;
               });
+
+              if (simulateError) {
+                setProgress(0);
+                appendLog('Please try again');
+                return;
+              }
 
               console.log('simulateInfo', simulateInfo);
 
