@@ -15,16 +15,16 @@ export const CreateBucket = ({ appendLog }) => {
   return (
     <>
       <h4>Bucket name :</h4>
-      <input class="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+      <input className="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
         value={createBucketInfo.bucketName}
-        style={{ width: '60%', marginBottom: 5}}
+        style={{ width: '60%', marginBottom: 5 }}
         placeholder="bucket name"
         onChange={(e) => {
           setCreateBucketInfo({ ...createBucketInfo, bucketName: e.target.value });
         }}
       />
       <br />
-      <button class="bg-sky-700 px-4 py-2 text-white hover:bg-sky-800 sm:px-8 sm:py-3 rounded-lg" 
+      <button className="bg-green-600 px-4 py-2 text-white hover:bg-green-500 sm:px-8 sm:py-3 rounded-lg"
         onClick={async () => {
           if (!address) return;
 
@@ -50,8 +50,6 @@ export const CreateBucket = ({ appendLog }) => {
               paymentAddress: address,
             },
             {
-              // type: 'ECDSA',
-              // privateKey: ACCOUNT_PRIVATEKEY,
               type: 'EDDSA',
               domain: window.location.origin,
               seed: offChainData.seedString,
@@ -74,7 +72,7 @@ export const CreateBucket = ({ appendLog }) => {
           });
 
           if (res.code === 0) {
-            appendLog('Successful create bucket ' + createBucketInfo.bucketName );
+            appendLog('Successful create bucket ' + createBucketInfo.bucketName);
           }
         }}
       >
