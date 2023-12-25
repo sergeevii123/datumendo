@@ -57,6 +57,7 @@ export const CreateObject = ({ appendLog }) => {
         <h4>Bucket name :</h4>
         <input className="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
           value={createObjectInfo.bucketName}
+          style={{ width: '100%', marginBottom: 5 }}
           placeholder="bucket name"
           onChange={(e) => {
             setCreateObjectInfo({ ...createObjectInfo, bucketName: e.target.value });
@@ -75,7 +76,7 @@ export const CreateObject = ({ appendLog }) => {
           }}
         />
         <br />
-        <button className="bg-green-600 px-4 py-2 text-white hover:bg-green-500 sm:px-8 sm:py-3 rounded-lg" style={{marginBottom: 5}}
+        <button className="bg-green-600 px-4 py-2 text-white hover:bg-green-500 sm:px-8 sm:py-3 rounded-lg w-full" style={{marginBottom: 5}}
           onClick={async () => {
             appendLog('Initializing...');
             if (!linkInfo || !linkInfo.links.length) {
@@ -149,8 +150,6 @@ export const CreateObject = ({ appendLog }) => {
                   domain: window.location.origin,
                   seed: offChainData.seedString,
                   address,
-                  // type: 'ECDSA',
-                  // privateKey: ACCOUNT_PRIVATEKEY,
                 },
               );
 
@@ -186,8 +185,6 @@ export const CreateObject = ({ appendLog }) => {
               }
               setProgress(70);
               appendLog('Object transaction created. Uploading...');
-              // const provider = await connector?.getProvider();
-              // const offChainData = await getOffchainAuthKeys(address, provider);
               let uploadRes = await client.object.uploadObject(
                 {
                   bucketName: createObjectInfo.bucketName,

@@ -2,7 +2,7 @@
 
 const LoadingBar = ({ progress }) => (
   <div style={{
-    width: '300px', 
+    width: '100%', 
     height: '10px', 
     background: 'lightgrey', 
     position: 'relative',
