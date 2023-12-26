@@ -105,7 +105,7 @@ export const CreateObject = ({ appendLog }) => {
               await handleClickFetchNFTData(chainId, nftAddress, erc165, erc721Enumerable, ERC721EnumerableInterfaceID, setNftData, appendLog);
             }}
           >
-            fetch nft
+            Fetch NFT Data
           </button>
         </>
       )}

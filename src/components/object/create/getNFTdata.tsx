@@ -98,12 +98,13 @@ export async function handleClickFetchNFTData (chainId, nftAddress, erc165, erc7
                     const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
                     fetchURL = IPFS_GATEWAY + uri.substring(7);
                 }
-                console.log("fetchURL", fetchURL);
+                appendLog("Fetching metadata from URI: " + fetchURL);
                 const response = await fetch(fetchURL);
                 if (!response.ok) {
                     appendLog(`Failed to fetch token data from URI: ${uri}`);
                     return {};
                 }
+                appendLog("Metadata fetched from URI: " + fetchURL);
                 return await response.json();
             }),
         );
