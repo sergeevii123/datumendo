@@ -7,13 +7,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
+function getCurrentDateTime() {
+  const now = new Date();
+  return now.toLocaleString(); // Formats the date and time based on the user's locale
+}
+
 export default function Home() {
   const isMounted = useIsMounted();
   const { isConnected } = useAccount();
   const [logs, setLogs] = useState([]);
   const logEndRef = useRef(null);
   const appendLog = (message, isLink = false) => {
-    setLogs((prevLogs) => [...prevLogs, { message, isLink }]);
+    setLogs((prevLogs) => [...prevLogs, { timestamp: getCurrentDateTime(), message, isLink }]);
   };
   useEffect(() => {
     if (logEndRef.current) {
@@ -31,18 +36,18 @@ export default function Home() {
         <WalletInfo />
       </header>
         <>
-        <div className="max-w-4xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
+        {/* <div className="max-w-3xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
             <Bucket appendLog={appendLog} />
-          </div>
-          <div className="max-w-4xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
+          </div> */}
+          <div className="max-w-3xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
             <ObjectComponent appendLog={appendLog} />
           </div>
         </>
-      <div ref={logEndRef} className="max-w-4xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub" style={{ height: '200px', overflowY: 'scroll' }}>
+      <div ref={logEndRef} className="max-w-3xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub" style={{ height: '200px', overflowY: 'scroll' }}>
         <h4>Logs :</h4>
         {logs.map((log, index) => (
-          <div key={index}>
-            {log.isLink ? (
+          <div key={index} className="text-sm">
+            {log.timestamp}: {log.isLink ? (
               <a href={log.message} target="_blank" rel="noopener noreferrer" className="underline">
                 {log.message}
               </a>
