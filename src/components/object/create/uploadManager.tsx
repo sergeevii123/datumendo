@@ -35,7 +35,7 @@ async function downloadFile(finalURL: any) {
 
 export async function uploadFiles(singleLink: String, createObjectInfo, appendLog, setProgress, connector, address:string, chain) {
     await client.bucket.headBucket(createObjectInfo.bucketName).catch(async (error) => {
-        appendLog('Bucket '+ createObjectInfo.bucketName+ 'does not exist. Creating bucket...');
+        appendLog('Bucket '+ createObjectInfo.bucketName+ ' does not exist. Creating bucket...');
         await bucketCreator(address, createObjectInfo.bucketName, appendLog, connector);
     });
     if (!singleLink.startsWith("ipfs://") && !singleLink.startsWith("ar://")) {
@@ -56,10 +56,20 @@ export async function uploadFiles(singleLink: String, createObjectInfo, appendLo
         data = await downloadFile(finalUrl);
         objectName = finalUrl.split('/').slice(-1)[0];
     }
+    // check that file is not already uploaded
+    let objectExists = true;
+    await client.object.headObject(createObjectInfo.bucketName, objectName).catch(async (error) => {
+        objectExists = false;
+    });
+    if (objectExists === true) {
+        appendLog('Object '+ objectName+ ' already exists. Skipping...');
+        return;
+    }
     if (!data) {
         appendLog('Failed to download data');
         return;
     }
+    
     setProgress(30);
     appendLog('Data downloaded. Calculating object hash...');
     const provider = await connector?.getProvider();
