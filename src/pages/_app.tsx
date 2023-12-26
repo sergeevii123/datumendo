@@ -37,7 +37,7 @@ const wagmiConfig = createConfig({
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider modalSize="compact" chains={chains}>
+      <RainbowKitProvider modalSize="compact" chains={chains.filter((chain) => [5600, 1017].includes(chain.id))}>
         <Component {...pageProps} />
       </RainbowKitProvider>
     </WagmiConfig>

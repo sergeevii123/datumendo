@@ -4,6 +4,7 @@ import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
 import { publicProvider } from 'wagmi/providers/public';
+import { bscTestnet, bsc, opBNB, opBNBTestnet } from "wagmi/chains";
 import * as env from './env';
 
 export const GRPC_URL = env.GRPC_URL;
@@ -90,7 +91,10 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
       iconUrl:
         'https://github.com/wagmi-dev/wagmi/assets/5653652/44446c8c-5c72-4e89-b8eb-3042ef618eed',
     },
-    // bscChain,
+    bsc,
+    bscTestnet,
+    opBNB,
+    opBNBTestnet,
   ],
   [publicProvider()],
 );

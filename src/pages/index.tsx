@@ -36,9 +36,9 @@ export default function Home() {
         <WalletInfo />
       </header>
         <>
-        <div className="max-w-3xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
+        {/* <div className="max-w-3xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
             <Bucket appendLog={appendLog} />
-          </div>
+          </div> */}
           <div className="max-w-3xl w-full mx-auto p-4 bg-gray-100 rounded-lg shadow-md mb-8 bg-sub">
             <ObjectComponent appendLog={appendLog} />
           </div>

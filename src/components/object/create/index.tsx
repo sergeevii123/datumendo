@@ -1,226 +1,163 @@
-import { client } from '@/client';
-import { ACCOUNT_PRIVATEKEY } from '@/config/env';
-import { getOffchainAuthKeys } from '@/utils/offchainAuth';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useState, useEffect } from 'react';
 import { useAccount, useNetwork } from 'wagmi';
-import * as FileHandle from "@bnb-chain/greenfiled-file-handle";
 import LoadingBar from './loading_bar';
+import { uploadFiles } from './uploadManager';
+import { useContract } from "@/hooks/useContract";
+import { handleClickFetchNFTData } from './getNFTdata';
+import { ERC721EnumerableInterfaceID, sampleNFTAddress } from '@/constants/other';
 
-async function downloadFile(finalURL: any) {
-  let data = [];
-
-  // Fetch the file from the given URL
-  const res = await fetch(finalURL);
-
-  return streamToArrayBuffer(res.body!);
+interface Metadata {
+  [key: string]: any;
 }
 
-async function streamToArrayBuffer(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
-  const chunks: Uint8Array[] = [];
-  const reader = stream.getReader();
-  while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-          break;
-      } else {
-          chunks.push(value);
-      }
-  }
-  return concatArrayBuffers(chunks);
+interface NFT {
+  tokenId: string;
+  metadata?: Metadata;
 }
 
-function concatArrayBuffers(chunks: Uint8Array[]): Uint8Array {
-  const result = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
-  let offset = 0;
-  for (const chunk of chunks) {
-      result.set(chunk, offset);
-      offset += chunk.length;
-  }
-  return result;
+function getDefaultBucketName() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0'); // JavaScript months are 0-based
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+
+  return `bucket-${year}-${month}-${day}-${hours}-${minutes}`;
 }
 
 export const CreateObject = ({ appendLog }) => {
+  const [currentView, setCurrentView] = useState('nftFetch'); // 'nftFetch' or 'linksMigrator'
   const { address, connector } = useAccount();
   const { chain } = useNetwork();
   const [createObjectInfo, setCreateObjectInfo] = useState({
-    bucketName: '',
+    bucketName: getDefaultBucketName(),
   });
   // const ipfs = ipfsClient("https://gateway.ipfs.io/");
   const [linkInfo, setLinkInfo] = useState({
     links: [],
   });
   const [progress, setProgress] = useState(0);
-
+  const [chainId, setChainId] = useState(56);
+  const [nftData, setNftData] = useState<NFT[]>([]);
+  const [nftAddress, setNFTAddress] = useState(sampleNFTAddress);
+  const { erc165, erc721Enumerable } = useContract({ chainId, address: nftAddress });
+  useEffect(() => {
+    if (nftData.length > 0) {
+      const nftLinks = nftData.map(nft => nft.metadata.image).filter(link => link);
+      appendLog("Populated links for migration")
+      setLinkInfo({ links: nftLinks });
+      setCurrentView('linksMigrator');
+    }
+  }, [nftData]);
   return (
     <div>
-      <>
-        <h4>Bucket name :</h4>
-        <input className="p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
-          value={createObjectInfo.bucketName}
-          style={{ width: '100%', marginBottom: 5 }}
-          placeholder="bucket name"
-          onChange={(e) => {
-            setCreateObjectInfo({ ...createObjectInfo, bucketName: e.target.value });
-          }}
-        />
-        <br />
-        <h4>Input IPFS/Arweave links</h4>
-        <textarea
-          className=" h-[100px] overflow-y-auto p-4 bg-white text-black rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
-          value={linkInfo.links.join('\n')}
-          placeholder="links separated by newline"
-          style={{ width: '100%', marginBottom: 5 }}
-          onChange={(e) => {
-            const newLinks = e.target.value.split('\n');
-            setLinkInfo({ ...linkInfo, links: newLinks });
-          }}
-        />
-        <br />
-        <button className="bg-green-600 px-4 py-2 text-white hover:bg-green-500 sm:px-8 sm:py-3 rounded-lg w-full" style={{marginBottom: 5}}
-          onClick={async () => {
-            appendLog('Initializing...');
-            if (!linkInfo || !linkInfo.links.length) {
-              appendLog('Please set links');
-              return;
-            }
-            if (!address) {
-              appendLog('Please select an address');
-              return;
-            }
-            for (const singleLink of linkInfo.links) {
-              if (!singleLink.startsWith("ipfs://") && !singleLink.startsWith("ar://")) {
-                appendLog('Please insert link with ipfs:// or ar://');
-                return;
-              }
-              let data, objectName;
-              setProgress(10);
-              appendLog("Downloading file: "+ singleLink);
-              if (singleLink.startsWith("ipfs://")) {
-                const cid = singleLink.replaceAll("ipfs://", "");
-                // data = await downloadIpfsFile(ipfs, cid);
-                const finalUrl = singleLink.replaceAll("ipfs://", "https://gateway.ipfs.io/ipfs/");
-                data = await downloadFile(finalUrl);
-                objectName = cid.split('/').slice(-1)[0];
-              } else {
-                const finalUrl = singleLink.replaceAll("ar://", "https://arweave.net/");
-                data = await downloadFile(finalUrl);
-                objectName = finalUrl.split('/').slice(-1)[0];
-              }
-              if (!data) {
-                appendLog('Failed to download data');
-                return;
-              }
-              setProgress(30);
-              appendLog('Data downloaded. Calculating object hash...');
-              const provider = await connector?.getProvider();
-              const offChainData = await getOffchainAuthKeys(address, provider);
-              if (!offChainData) {
-                appendLog('No offchain, please create offchain pairs first');
-                return;
-              }
-              const dataArray = new Uint8Array(data);
-              const dataSizeInMegabytes = Math.ceil(dataArray.length / (1024 * 1024));
-              console.log('dataSizeInMegabytes', dataSizeInMegabytes);
-              const hashResult = await FileHandle.getCheckSums(
-                dataArray,
-                dataSizeInMegabytes * 1024 * 1024, // 16 * 1024 * 1024
-                4,
-                2
-              );
-
-              const { contentLength, expectCheckSums } = hashResult;
-
-              console.log('offChainData', offChainData);
-              console.log('hashResult ', hashResult);
-              setProgress(50);
-              appendLog('Calculated object hash. Creating transaction...');
-              const createObjectTx = await client.object.createObject(
-                {
-                  bucketName: createObjectInfo.bucketName,
-                  objectName: objectName,
-                  creator: address,
-                  visibility: 'VISIBILITY_TYPE_PRIVATE',
-                  fileType: "",
-                  redundancyType: 'REDUNDANCY_EC_TYPE',
-                  contentLength,
-                  expectCheckSums: JSON.parse(expectCheckSums),
-                },
-                {
-                  type: 'EDDSA',
-                  domain: window.location.origin,
-                  seed: offChainData.seedString,
-                  address,
-                },
-              );
-
-              let simulateError;
-              const simulateInfo = await createObjectTx.simulate({
-                denom: 'BNB',
-              })
-              .catch(error => {
-                appendLog('Transaction is likely to fail: ' + error.message);
-                simulateError = true;
-              });
-
-              if (simulateError) {
-                setProgress(0);
-                appendLog('Please try again');
-                return;
-              }
-
-              console.log('simulateInfo', simulateInfo);
-
-              const res = await createObjectTx.broadcast({
-                denom: 'BNB',
-                gasLimit: Number(simulateInfo?.gasLimit),
-                gasPrice: simulateInfo?.gasPrice || '5000000000',
-                payer: address,
-                granter: '',
-              });
-
-              console.log('res', res);
-              if (res.code !== 0) {
-                appendLog('Failed to create object transaction');
-                return;
-              }
-              setProgress(70);
-              appendLog('Object transaction created. Uploading...');
-              let uploadRes = await client.object.uploadObject(
-                {
-                  bucketName: createObjectInfo.bucketName,
-                  objectName: objectName,
-                  body: data,
-                  txnHash: res.transactionHash,
-                },
-                {
-                  type: 'EDDSA',
-                  domain: window.location.origin,
-                  seed: offChainData.seedString,
-                  address,
-                },
-              );
-              console.log('uploadRes', uploadRes);
-
-              if (uploadRes.code === 0) {
-                setProgress(100);
-                appendLog('Upload successful!');
-                if (chain?.name === 'Greenfield Testnet') {
-                  appendLog("https://testnet.greenfieldscan.com/tx/"+res.transactionHash, true);
-                }
-                if (chain?.name === 'Greenfield Mainnet') {
-                  appendLog("https://greenfieldscan.com/tx/"+res.transactionHash, true);
-                }
-              }
-            }
-          }}
-        >
-          Migrate objects
-        </button>
-      </>
-      <div>
-        <LoadingBar progress={progress} />
+      <div className="mb-6 flex justify-end items-center">
+        <nav className="flex space-x-4 text-gray-600">
+          <button
+            className={`px-4 py-2 font-semibold border-b-2 ${currentView === 'nftFetch' ? 'text-green-600 border-green-600' : 'text-gray-600 border-gray-600 opacity-25'}`}
+            onClick={() => setCurrentView('nftFetch')}
+          >
+            NFT Fetch
+          </button>
+          <button
+            className={`px-4 py-2 font-semibold border-b-2 ${currentView === 'linksMigrator' ? 'text-green-600 border-green-600' : 'text-gray-600 border-gray-600 opacity-25'}`}
+            onClick={() => setCurrentView('linksMigrator')}
+          >
+            Links Migrator
+          </button>
+        </nav>
       </div>
-      
+      {currentView === 'nftFetch' && (
+        <>
+          <label htmlFor="network" className="block font-medium text-gray-600">
+            NFT Network
+          </label>
+          <select
+            id="chainId"
+            className="bg-white text-gray-600 p-2 w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 outline-none input-form"
+            value={chainId}
+            style={{ width: '100%', marginBottom: 5 }}
+            onChange={(e) => setChainId(Number(e.target.value))}
+          >
+            <option value={56}>BSC</option>
+            <option value={204}>opBNB</option>
+            <option value={97}>BSC Testnet</option>
+            <option value={5611}>opBNB Testnet</option>
+            
+          </select>
+          
+              <label htmlFor="address" className="block font-medium text-gray-600">
+                NFT Contract Address
+              </label>
+              <input
+                id="address"
+                className="p-2 bg-white text-gray-600 rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+                type="text"
+                style={{ width: '100%', marginBottom: 5 }}
+                placeholder="Enter NFT Contract Address"
+                value={nftAddress}
+                onChange={(e) => setNFTAddress(e.target.value)}
+              />
+          <br />
+          <button className="bg-green-600 px-4 py-2 text-white hover:bg-green-500 sm:px-8 sm:py-3 rounded-lg w-full"
+            onClick={async () => {
+              await handleClickFetchNFTData(chainId, nftAddress, erc165, erc721Enumerable, ERC721EnumerableInterfaceID, setNftData, appendLog);
+            }}
+          >
+            fetch nft
+          </button>
+        </>
+      )}
+
+      {currentView === 'linksMigrator' && (
+        <>
+          <h4 className="block font-medium text-gray-600" >Bucket name:</h4>
+          <input className="p-2 bg-white text-gray-600 rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+            value={createObjectInfo.bucketName}
+            style={{ width: '100%', marginBottom: 5 }}
+            placeholder="bucket name"
+            onChange={(e) => {
+              setCreateObjectInfo({ ...createObjectInfo, bucketName: e.target.value });
+            }}
+          />
+          <br />
+          <h4 className="block font-medium text-gray-600">Input IPFS/Arweave links:</h4>
+          <textarea
+            className=" h-[100px] overflow-y-auto p-4 bg-white text-gray-600 rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+            value={linkInfo.links.join('\n')}
+            placeholder="links separated by newline"
+            style={{ width: '100%', marginBottom: 5 }}
+            onChange={(e) => {
+              const newLinks = e.target.value.split('\n');
+              setLinkInfo({ ...linkInfo, links: newLinks });
+            }}
+          />
+          <br />
+          <button className="bg-green-600 px-4 py-2 text-white hover:bg-green-500 sm:px-8 sm:py-3 rounded-lg w-full" style={{ marginBottom: 5 }}
+            onClick={async () => {
+              appendLog('Initializing...');
+              if (!linkInfo || !linkInfo.links.length) {
+                appendLog('Please set links');
+                return;
+              }
+              if (!address) {
+                appendLog('Please select an address');
+                return;
+              }
+              for (const singleLink of linkInfo.links) {
+                await uploadFiles(singleLink, createObjectInfo, appendLog, setProgress, connector, address, chain);
+              }
+            }}
+          >
+            Migrate objects
+          </button>
+          <div>
+            <LoadingBar progress={progress} />
+          </div>
+        </>
+      )}
+
     </div>
   );
 };
