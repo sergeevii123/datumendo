@@ -13,6 +13,20 @@ interface Metadata {
     [key: string]: any;
 }
 
+function fetchWithTimeout(url, timeout = 5000) { // timeout in milliseconds
+    return new Promise((resolve, reject) => {
+      // Set timeout timer
+      const timer = setTimeout(() => {
+        reject(new Error('Request timed out'));
+      }, timeout);
+  
+      fetch(url)
+        .then(response => resolve(response))
+        .catch(err => reject(err))
+        .finally(() => clearTimeout(timer)); // Clear the timeout timer
+    });
+  }
+
 export async function handleClickFetchNFTData (chainId, nftAddress, erc165, erc721Enumerable, ERC721EnumerableInterfaceID, setNftData, appendLog){
         console.log("chainId", chainId);
         appendLog("Starting fetching nft for nftAddress: " + nftAddress);
@@ -98,14 +112,18 @@ export async function handleClickFetchNFTData (chainId, nftAddress, erc165, erc7
                     const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
                     fetchURL = IPFS_GATEWAY + uri.substring(7);
                 }
-                appendLog("Fetching metadata from URI: " + fetchURL);
-                const response = await fetch(fetchURL);
-                if (!response.ok) {
+                try{
+                    const response = await fetch(fetchURL);
+                    if (!response.ok) {
+                        appendLog(`Failed to fetch token data from URI: ${uri}`);
+                        return {};
+                    }
+                    appendLog("Metadata fetched from URI: " + fetchURL);
+                    return await response.json();
+                } catch (error) {
                     appendLog(`Failed to fetch token data from URI: ${uri}`);
                     return {};
                 }
-                appendLog("Metadata fetched from URI: " + fetchURL);
-                return await response.json();
             }),
         );
         const nftData = tokenIds.map((tokenId, i) => ({
