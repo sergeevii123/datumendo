@@ -4,12 +4,13 @@ import { erc721EnumerableAbi } from "@/lib/abi";
 import { ethers } from "ethers";
 import { resolve } from "path";
 
-interface NFT {
+export interface NFT {
     tokenId: string;
+    metadataUrl: string;
     metadata?: Metadata;
 }
 
-interface Metadata {
+export interface Metadata {
     [key: string]: any;
 }
 
@@ -27,7 +28,15 @@ function fetchWithTimeout(url, timeout = 5000) { // timeout in milliseconds
     });
   }
 
-export async function handleClickFetchNFTData (chainId, nftAddress, erc165, erc721Enumerable, ERC721EnumerableInterfaceID, setNftData, appendLog){
+export async function handleClickFetchNFTData (
+        chainId: number, 
+        nftAddress: string, 
+        erc165, 
+        erc721Enumerable, 
+        ERC721EnumerableInterfaceID, 
+        setNftData, 
+        appendLog
+    ){
         console.log("chainId", chainId);
         appendLog("Starting fetching nft for nftAddress: " + nftAddress);
         if (!ethers.utils.isAddress(nftAddress)) {
@@ -119,7 +128,8 @@ export async function handleClickFetchNFTData (chainId, nftAddress, erc165, erc7
                         return {};
                     }
                     appendLog("Metadata fetched from URI: " + fetchURL);
-                    return await response.json();
+                    const responseJSON = await response.json();
+                    return { url: fetchURL, json: responseJSON };
                 } catch (error) {
                     appendLog(`Failed to fetch token data from URI: ${uri}`);
                     return {};
@@ -128,8 +138,9 @@ export async function handleClickFetchNFTData (chainId, nftAddress, erc165, erc7
         );
         const nftData = tokenIds.map((tokenId, i) => ({
             tokenId: tokenId.toString(),
-            metadata: metadataList[i],
+            metadataUrl: metadataList[i].url,
+            metadata: metadataList[i].json
         }));
         appendLog("NFT images fetched");
         setNftData(nftData);
-    } 
+    }

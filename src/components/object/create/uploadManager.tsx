@@ -3,6 +3,11 @@ import * as FileHandle from "@bnb-chain/greenfiled-file-handle";
 import { client } from '@/client';
 import { bucketCreator } from '@/components/bucket/create/bucketCreator';
 
+export enum UploadType {
+    Image,
+    Metadata
+  }
+
 function concatArrayBuffers(chunks: Uint8Array[]): Uint8Array {
     const result = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
     let offset = 0;
@@ -33,29 +38,53 @@ async function downloadFile(finalURL: any) {
     return streamToArrayBuffer(res.body!);
 }
 
-export async function uploadFiles(singleLink: String, createObjectInfo, appendLog, setProgress, connector, address:string, chain) {
+function getDownloadLink(initialLink: String): String {
+    if (initialLink.startsWith("ipfs://")) {
+        return initialLink.replaceAll("ipfs://", "https://gateway.ipfs.io/ipfs/");
+    } else if (initialLink.startsWith("ar://")) {
+        return initialLink.replaceAll("ar://", "https://arweave.net/");
+    } else if (initialLink.includes("http")) {
+        return initialLink
+    } else {
+        return ""
+    }
+}
+
+export async function uploadFiles(
+    singleLink: String,
+    uploadType: UploadType,
+    createObjectInfo, 
+    appendLog, 
+    setProgress, 
+    connector, 
+    address:string, 
+    chain
+) {
     await client.bucket.headBucket(createObjectInfo.bucketName).catch(async (error) => {
         appendLog('Bucket '+ createObjectInfo.bucketName+ ' does not exist. Creating bucket...');
         await bucketCreator(address, createObjectInfo.bucketName, appendLog, connector);
     });
-    if (!singleLink.startsWith("ipfs://") && !singleLink.startsWith("ar://")) {
-        appendLog('Please insert link with ipfs:// or ar://');
+    
+    const finalUrl = getDownloadLink(singleLink)
+    if (finalUrl == "") {
+        appendLog('Unrecognized file link format');
         return;
     }
-    let data, objectName;
+
     setProgress(10);
     appendLog("Downloading file: " + singleLink);
-    if (singleLink.startsWith("ipfs://")) {
-        const cid = singleLink.replaceAll("ipfs://", "");
-        // data = await downloadIpfsFile(ipfs, cid);
-        const finalUrl = singleLink.replaceAll("ipfs://", "https://gateway.ipfs.io/ipfs/");
-        data = await downloadFile(finalUrl);
-        objectName = cid.split('/').slice(-1)[0];
-    } else {
-        const finalUrl = singleLink.replaceAll("ar://", "https://arweave.net/");
-        data = await downloadFile(finalUrl);
-        objectName = finalUrl.split('/').slice(-1)[0];
+    const data = await downloadFile(finalUrl);
+    
+    var objectName = finalUrl.split('/').slice(-1)[0];
+    switch (+uploadType) {
+        case UploadType.Image:
+            objectName = "images/" + objectName
+            break
+        case UploadType.Metadata:
+            objectName = "metadata/" + objectName
+            break
     }
+
     // check that file is not already uploaded
     let objectExists = true;
     await client.object.headObject(createObjectInfo.bucketName, objectName).catch(async (error) => {
@@ -94,6 +123,7 @@ export async function uploadFiles(singleLink: String, createObjectInfo, appendLo
     console.log('hashResult ', hashResult);
     setProgress(50);
     appendLog('Calculated object hash. Creating transaction...');
+    appendLog('File will be created as: ' + objectName);
     const createObjectTx = await client.object.createObject(
         {
             bucketName: createObjectInfo.bucketName,
