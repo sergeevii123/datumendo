@@ -1,19 +1,15 @@
 import { ChangeEvent, useState, useEffect } from 'react';
 import { useAccount, useNetwork } from 'wagmi';
 import LoadingBar from './loading_bar';
-import { uploadFiles } from './uploadManager';
+import { 
+  downloadFromLink,
+  uploadFile,
+  getFileNameWithoutExtension,
+  UploadType
+} from './uploadManager';
 import { useContract } from "@/hooks/useContract";
-import { handleClickFetchNFTData } from './getNFTdata';
+import { handleClickFetchNFTData, NFT, Metadata } from './getNFTdata';
 import { ERC721EnumerableInterfaceID, sampleNFTAddress } from '@/constants/other';
-
-interface Metadata {
-  [key: string]: any;
-}
-
-interface NFT {
-  tokenId: string;
-  metadata?: Metadata;
-}
 
 function getDefaultBucketName() {
   const now = new Date();
@@ -34,8 +30,11 @@ export const CreateObject = ({ appendLog }) => {
     bucketName: getDefaultBucketName(),
   });
   // const ipfs = ipfsClient("https://gateway.ipfs.io/");
-  const [linkInfo, setLinkInfo] = useState({
-    links: [],
+  const [imageLinks, setImageLinks] = useState({
+    links: []
+  });
+  const [metadataLinks, setMetadataLinks] = useState({
+    links: []
   });
   const [progress, setProgress] = useState(0);
   const [chainId, setChainId] = useState(56);
@@ -44,9 +43,11 @@ export const CreateObject = ({ appendLog }) => {
   const { erc165, erc721Enumerable } = useContract({ chainId, address: nftAddress });
   useEffect(() => {
     if (nftData.length > 0) {
-      const nftLinks = nftData.map(nft => nft.metadata.image).filter(link => link);
+      const nftLinks = nftData.map(nft => nft.metadata?.image).filter(link => link);
+      const metadataLinks = nftData.map(nft => nft.metadataUrl).filter(link => link);
       appendLog("Populated links for migration")
-      setLinkInfo({ links: nftLinks });
+      setImageLinks({ links: nftLinks });
+      setMetadataLinks({ links: metadataLinks });
       setCurrentView('linksMigrator');
     }
   }, [nftData]);
@@ -122,31 +123,74 @@ export const CreateObject = ({ appendLog }) => {
             }}
           />
           <br />
-          <h4 className="block font-medium text-gray-600">Input IPFS/Arweave links:</h4>
+          <h4 className="block font-medium text-gray-600">Input IPFS/Arweave image links:</h4>
           <textarea
             className=" h-[100px] overflow-y-auto p-4 bg-white text-gray-600 rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
-            value={linkInfo.links.join('\n')}
+            value={imageLinks.links.join('\n')}
             placeholder="links separated by newline"
             style={{ width: '100%', marginBottom: 5 }}
             onChange={(e) => {
               const newLinks = e.target.value.split('\n');
-              setLinkInfo({ ...linkInfo, links: newLinks });
+              setImageLinks({ ...imageLinks, links: newLinks });
+            }}
+          />
+          <br />
+          <h4 className="block font-medium text-gray-600">Metadata links (optional):</h4>
+          <textarea
+            className=" h-[100px] overflow-y-auto p-4 bg-white text-gray-600 rounded-lg border border-gray-300 w-full md:w-1/2 lg:w-1/3"
+            value={metadataLinks.links.join('\n')}
+            placeholder="links separated by newline"
+            style={{ width: '100%', marginBottom: 5 }}
+            onChange={(e) => {
+              const newLinks = e.target.value.split('\n');
+              setMetadataLinks({ ...metadataLinks, links: newLinks });
             }}
           />
           <br />
           <button className="bg-green-600 px-4 py-2 text-white hover:bg-green-500 sm:px-8 sm:py-3 rounded-lg w-full" style={{ marginBottom: 5 }}
             onClick={async () => {
               appendLog('Initializing...');
-              if (!linkInfo || !linkInfo.links.length) {
-                appendLog('Please set links');
+              if (!imageLinks || !imageLinks.links.length) {
+                appendLog('Please set image links');
                 return;
               }
               if (!address) {
                 appendLog('Please select an address');
                 return;
               }
-              for (const singleLink of linkInfo.links) {
-                await uploadFiles(singleLink, createObjectInfo, appendLog, setProgress, connector, address, chain);
+              var reuploadedImageUrls: Record<string, string> = {}
+              for (const singleImageLink of imageLinks.links) {
+                const downloadResult = await downloadFromLink(singleImageLink, setProgress, appendLog)
+                if (downloadResult == null) {
+                  appendLog('Download failed');
+                  setProgress(0)
+                  return;
+                }
+                const uploadUrl = await uploadFile(downloadResult[0], downloadResult[1], UploadType.Image, createObjectInfo, connector, address, chain, setProgress, appendLog);
+
+                if (uploadUrl != null) {
+                  var id = getFileNameWithoutExtension(singleImageLink)
+                  reuploadedImageUrls[id] = uploadUrl;
+                }
+              }
+              for (const singleMetadataLink of metadataLinks.links) {
+                const downloadResult = await downloadFromLink(singleMetadataLink, setProgress, appendLog)
+                if (downloadResult == null) {
+                  appendLog('Download failed');
+                  setProgress(0)
+                  return;
+                }
+                var id = getFileNameWithoutExtension(singleMetadataLink)
+                var updatedJSON;
+                if (reuploadedImageUrls[id] != null) {
+                  const jsonString = Buffer.from(downloadResult[0]).toString('utf8')
+                  var parsedJSON = JSON.parse(jsonString)
+                  parsedJSON["image"] = reuploadedImageUrls[id]
+                  updatedJSON = Buffer.from(JSON.stringify(parsedJSON))
+                  appendLog('Updated metadata image URL to ' + reuploadedImageUrls[id]);
+                }
+
+                await uploadFile(updatedJSON ?? downloadResult[0], downloadResult[1], UploadType.Metadata, createObjectInfo, connector, address, chain, setProgress, appendLog);
               }
             }}
           >

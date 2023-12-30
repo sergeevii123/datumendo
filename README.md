@@ -10,12 +10,17 @@ User must have a wallet connected to the Greenfield testnet and have it's native
 pnpm install
 ```
 
-### start app in dev
+### Start app in dev
 ```
 npx next dev
 ```
 
-### start app in prd
+### Run tailwind watcher
+```
+npx tailwindcss -o ./src/styles/globals.css --watch
+```
+
+### Start app in prod
 ```
 npx next build
 npx next start
