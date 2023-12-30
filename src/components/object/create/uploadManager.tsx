@@ -38,7 +38,7 @@ async function downloadFile(finalURL: any) {
     return streamToArrayBuffer(res.body!);
 }
 
-function getDownloadLink(initialLink: String): String {
+function getDownloadLink(initialLink: string): string {
     if (initialLink.startsWith("ipfs://")) {
         return initialLink.replaceAll("ipfs://", "https://gateway.ipfs.io/ipfs/");
     } else if (initialLink.startsWith("ar://")) {
@@ -50,39 +50,48 @@ function getDownloadLink(initialLink: String): String {
     }
 }
 
+export function getFileNameWithoutExtension(url: string): string {
+    return getFileName(url).split('.')[0];
+}
+
+function getFileName(url: string): string {
+    return url.split('/').slice(-1)[0];
+}
+
 export async function uploadFiles(
-    singleLink: String,
+    singleLink: string,
     uploadType: UploadType,
     createObjectInfo, 
     appendLog, 
     setProgress, 
     connector, 
-    address:string, 
+    address: string, 
     chain
-) {
+): Promise<string|null> {
     await client.bucket.headBucket(createObjectInfo.bucketName).catch(async (error) => {
         appendLog('Bucket '+ createObjectInfo.bucketName+ ' does not exist. Creating bucket...');
         await bucketCreator(address, createObjectInfo.bucketName, appendLog, connector);
+        return null;
     });
     
     const finalUrl = getDownloadLink(singleLink)
     if (finalUrl == "") {
         appendLog('Unrecognized file link format');
-        return;
+        return null;
     }
-
-    setProgress(10);
-    appendLog("Downloading file: " + singleLink);
-    const data = await downloadFile(finalUrl);
     
-    var objectName = finalUrl.split('/').slice(-1)[0];
+    var fileName = getFileName(finalUrl)
+    var objectName: string;
     switch (+uploadType) {
         case UploadType.Image:
-            objectName = "images/" + objectName
+            objectName = "images/" + fileName
             break
         case UploadType.Metadata:
-            objectName = "metadata/" + objectName
+            objectName = "metadata/" + fileName
+            // Additional logic to update 
             break
+        default:
+            objectName = fileName
     }
 
     // check that file is not already uploaded
@@ -91,12 +100,16 @@ export async function uploadFiles(
         objectExists = false;
     });
     if (objectExists === true) {
-        appendLog('Object '+ objectName+ ' already exists. Skipping...');
-        return;
+        appendLog('Object with name '+ objectName + ' already exists. Skipping...');
+        return null;
     }
+
+    setProgress(10);
+    appendLog("Downloading file: " + singleLink);
+    const data = await downloadFile(finalUrl);
     if (!data) {
         appendLog('Failed to download data');
-        return;
+        return null;
     }
     
     setProgress(30);
@@ -105,7 +118,7 @@ export async function uploadFiles(
     const offChainData = await getOffchainAuthKeys(address, provider);
     if (!offChainData) {
         appendLog('No offchain, please create offchain pairs first');
-        return;
+        return null;
     }
     const dataArray = new Uint8Array(data);
     const dataSizeInMegabytes = Math.ceil(dataArray.length / (1024 * 1024));
@@ -155,7 +168,7 @@ export async function uploadFiles(
     if (simulateError) {
         setProgress(0);
         appendLog('Please try again');
-        return;
+        return null;
     }
 
     console.log('simulateInfo', simulateInfo);
@@ -171,7 +184,7 @@ export async function uploadFiles(
     console.log('res', res);
     if (res.code !== 0) {
         appendLog('Failed to create object transaction');
-        return;
+        return null;
     }
     setProgress(70);
     appendLog('Object transaction created. Uploading...');
@@ -194,11 +207,21 @@ export async function uploadFiles(
     if (uploadRes.code === 0) {
         setProgress(100);
         appendLog('Upload successful!');
+        var uploadedFileURL;
         if (chain?.name === 'Greenfield Testnet') {
-            appendLog("https://testnet.greenfieldscan.com/tx/" + res.transactionHash, true);
+            const link = "https://testnet.greenfieldscan.com/tx/" + res.transactionHash
+            appendLog(link, true);
+            return link;
+        } else if (chain?.name === 'Greenfield Mainnet') {
+            const link = "https://greenfieldscan.com/tx/" + res.transactionHash
+            appendLog(link, true);
+            return link;
+        } else {
+            appendLog("Unknown network selected");
+            return null;
         }
-        if (chain?.name === 'Greenfield Mainnet') {
-            appendLog("https://greenfieldscan.com/tx/" + res.transactionHash, true);
-        }
+    } else {
+        appendLog('Unkwnown return code ' + uploadRes.code);
+        return null;
     }
 }

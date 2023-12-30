@@ -1,7 +1,7 @@
 import { ChangeEvent, useState, useEffect } from 'react';
 import { useAccount, useNetwork } from 'wagmi';
 import LoadingBar from './loading_bar';
-import { uploadFiles, UploadType } from './uploadManager';
+import { uploadFiles, getFileNameWithoutExtension, UploadType } from './uploadManager';
 import { useContract } from "@/hooks/useContract";
 import { handleClickFetchNFTData, NFT, Metadata } from './getNFTdata';
 import { ERC721EnumerableInterfaceID, sampleNFTAddress } from '@/constants/other';
@@ -153,10 +153,20 @@ export const CreateObject = ({ appendLog }) => {
                 appendLog('Please select an address');
                 return;
               }
+              var reuploadedImageUrls: Record<string, string> = {}
               for (const singleImageLink of imageLinks.links) {
-                await uploadFiles(singleImageLink, UploadType.Image, createObjectInfo, appendLog, setProgress, connector, address, chain);
+                const uploadUrl = await uploadFiles(singleImageLink, UploadType.Image, createObjectInfo, appendLog, setProgress, connector, address, chain);
+
+                if (uploadUrl != null) {
+                  var id = getFileNameWithoutExtension(singleImageLink)
+                  reuploadedImageUrls[id] = uploadUrl;
+                }
               }
               for (const singleMetadataLink of metadataLinks.links) {
+                var id = getFileNameWithoutExtension(singleMetadataLink)
+                if (reuploadedImageUrls[id] != null) {
+
+                }
                 await uploadFiles(singleMetadataLink, UploadType.Metadata, createObjectInfo, appendLog, setProgress, connector, address, chain);
               }
             }}
