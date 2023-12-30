@@ -6,7 +6,7 @@ import { bucketCreator } from '@/components/bucket/create/bucketCreator';
 export enum UploadType {
     Image,
     Metadata
-  }
+}
 
 function concatArrayBuffers(chunks: Uint8Array[]): Uint8Array {
     const result = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
@@ -58,29 +58,49 @@ function getFileName(url: string): string {
     return url.split('/').slice(-1)[0];
 }
 
-export async function uploadFiles(
-    singleLink: string,
-    uploadType: UploadType,
-    createObjectInfo, 
-    appendLog, 
+export async function downloadFromLink(
+    fileLink: string,
     setProgress, 
-    connector, 
-    address: string, 
-    chain
+    appendLog
+): Promise<[Uint8Array, string]|null> {
+    const finalUrl = getDownloadLink(fileLink)
+    if (finalUrl == "") {
+        appendLog('Unrecognized file link format');
+        return null;
+    }
+    var fileName = getFileName(finalUrl)
+
+    setProgress(10);
+    appendLog("Downloading file: " + fileLink);
+    const dataStrings = await downloadFile(finalUrl);
+    if (!dataStrings) {
+        appendLog('Failed to download data');
+        return null;
+    }
+    
+    setProgress(30);
+
+    const data = new Uint8Array(dataStrings);
+    return [data, fileName]
+}
+
+export async function uploadFile(
+    data: Uint8Array,
+    fileName: string,
+    uploadType: UploadType,
+    createObjectInfo,
+    connector,
+    address: string,
+    chain,
+    setProgress, 
+    appendLog
 ): Promise<string|null> {
     await client.bucket.headBucket(createObjectInfo.bucketName).catch(async (error) => {
         appendLog('Bucket '+ createObjectInfo.bucketName+ ' does not exist. Creating bucket...');
         await bucketCreator(address, createObjectInfo.bucketName, appendLog, connector);
         return null;
     });
-    
-    const finalUrl = getDownloadLink(singleLink)
-    if (finalUrl == "") {
-        appendLog('Unrecognized file link format');
-        return null;
-    }
-    
-    var fileName = getFileName(finalUrl)
+
     var objectName: string;
     switch (+uploadType) {
         case UploadType.Image:
@@ -104,15 +124,6 @@ export async function uploadFiles(
         return null;
     }
 
-    setProgress(10);
-    appendLog("Downloading file: " + singleLink);
-    const data = await downloadFile(finalUrl);
-    if (!data) {
-        appendLog('Failed to download data');
-        return null;
-    }
-    
-    setProgress(30);
     appendLog('Data downloaded. Calculating object hash...');
     const provider = await connector?.getProvider();
     const offChainData = await getOffchainAuthKeys(address, provider);
@@ -120,11 +131,11 @@ export async function uploadFiles(
         appendLog('No offchain, please create offchain pairs first');
         return null;
     }
-    const dataArray = new Uint8Array(data);
-    const dataSizeInMegabytes = Math.ceil(dataArray.length / (1024 * 1024));
+
+    const dataSizeInMegabytes = Math.ceil(data.length / (1024 * 1024));
     console.log('dataSizeInMegabytes', dataSizeInMegabytes);
     const hashResult = await FileHandle.getCheckSums(
-        dataArray,
+        data,
         dataSizeInMegabytes * 1024 * 1024, // 16 * 1024 * 1024
         4,
         2

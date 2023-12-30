@@ -1,7 +1,12 @@
 import { ChangeEvent, useState, useEffect } from 'react';
 import { useAccount, useNetwork } from 'wagmi';
 import LoadingBar from './loading_bar';
-import { uploadFiles, getFileNameWithoutExtension, UploadType } from './uploadManager';
+import { 
+  downloadFromLink,
+  uploadFile,
+  getFileNameWithoutExtension,
+  UploadType
+} from './uploadManager';
 import { useContract } from "@/hooks/useContract";
 import { handleClickFetchNFTData, NFT, Metadata } from './getNFTdata';
 import { ERC721EnumerableInterfaceID, sampleNFTAddress } from '@/constants/other';
@@ -155,7 +160,13 @@ export const CreateObject = ({ appendLog }) => {
               }
               var reuploadedImageUrls: Record<string, string> = {}
               for (const singleImageLink of imageLinks.links) {
-                const uploadUrl = await uploadFiles(singleImageLink, UploadType.Image, createObjectInfo, appendLog, setProgress, connector, address, chain);
+                const downloadResult = await downloadFromLink(singleImageLink, setProgress, appendLog)
+                if (downloadResult == null) {
+                  appendLog('Download failed');
+                  setProgress(0)
+                  return;
+                }
+                const uploadUrl = await uploadFile(downloadResult[0], downloadResult[1], UploadType.Image, createObjectInfo, connector, address, chain, setProgress, appendLog);
 
                 if (uploadUrl != null) {
                   var id = getFileNameWithoutExtension(singleImageLink)
@@ -163,11 +174,17 @@ export const CreateObject = ({ appendLog }) => {
                 }
               }
               for (const singleMetadataLink of metadataLinks.links) {
+                const downloadResult = await downloadFromLink(singleMetadataLink, setProgress, appendLog)
+                if (downloadResult == null) {
+                  appendLog('Download failed');
+                  setProgress(0)
+                  return;
+                }
                 var id = getFileNameWithoutExtension(singleMetadataLink)
                 if (reuploadedImageUrls[id] != null) {
 
                 }
-                await uploadFiles(singleMetadataLink, UploadType.Metadata, createObjectInfo, appendLog, setProgress, connector, address, chain);
+                await uploadFile(downloadResult[0], downloadResult[1], UploadType.Metadata, createObjectInfo, connector, address, chain, setProgress, appendLog);
               }
             }}
           >
