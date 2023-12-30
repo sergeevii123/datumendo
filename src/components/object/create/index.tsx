@@ -159,7 +159,7 @@ export const CreateObject = ({ appendLog }) => {
                 return;
               }
               var reuploadedImageUrls: Record<string, string> = {}
-              for (const singleImageLink of imageLinks.links.slice(0, 1)) {
+              for (const singleImageLink of imageLinks.links) {
                 const downloadResult = await downloadFromLink(singleImageLink, setProgress, appendLog)
                 if (downloadResult == null) {
                   appendLog('Download failed');
@@ -173,7 +173,7 @@ export const CreateObject = ({ appendLog }) => {
                   reuploadedImageUrls[id] = uploadUrl;
                 }
               }
-              for (const singleMetadataLink of metadataLinks.links.slice(0, 1)) {
+              for (const singleMetadataLink of metadataLinks.links) {
                 const downloadResult = await downloadFromLink(singleMetadataLink, setProgress, appendLog)
                 if (downloadResult == null) {
                   appendLog('Download failed');

@@ -153,7 +153,7 @@ export async function uploadFile(
             bucketName: createObjectInfo.bucketName,
             objectName: objectName,
             creator: address,
-            visibility: 'VISIBILITY_TYPE_PRIVATE',
+            visibility: 'VISIBILITY_TYPE_PUBLIC_READ',
             fileType: "",
             redundancyType: 'REDUNDANCY_EC_TYPE',
             contentLength,
@@ -222,11 +222,11 @@ export async function uploadFile(
         if (chain?.name === 'Greenfield Testnet') {
             const link = "https://testnet.greenfieldscan.com/tx/" + res.transactionHash
             appendLog(link, true);
-            return link;
+            return "gnfd://" + createObjectInfo.bucketName + "/" + objectName;
         } else if (chain?.name === 'Greenfield Mainnet') {
             const link = "https://greenfieldscan.com/tx/" + res.transactionHash
             appendLog(link, true);
-            return link;
+            return "gnfd://" + createObjectInfo.bucketName + "/" + objectName;
         } else {
             appendLog("Unknown network selected");
             return null;
